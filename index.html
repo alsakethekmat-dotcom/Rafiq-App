@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق رفيق - مدرسة حكمت الساكت الأساسية</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        .text-rafeeq-blue { color: #0F2C59; }
+        .bg-rafeeq-blue { background-color: #0F2C59; }
+        .text-rafeeq-teal { color: #299081; }
+        .bg-rafeeq-teal { background-color: #299081; }
+        .text-rafeeq-yellow { color: #F4B333; }
+    </style>
+</head>
+<body class="pb-24 md:pb-8">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-rafeeq-blue text-white rounded-2xl flex items-center justify-center text-2xl font-black shadow-md border border-blue-900">
+                    ر
+                </div>
+                <div>
+                    <h1 class="text-xl font-black text-rafeeq-blue">رفيق</h1>
+                    <p class="text-xs font-bold text-gray-400">مدرسة حكمت الساكت الأساسية</p>
+                </div>
+            </div>
+            
+            <nav class="hidden md:flex gap-4">
+                <button onclick="navigate('home')" class="nav-item active px-4 py-2 font-black text-sm transition" data-target="view-home">الرئيسية</button>
+                <button onclick="navigate('request')" class="nav-item text-gray-500 px-4 py-2 font-black text-sm transition" data-target="view-request">طلب جلسة</button>
+                <button onclick="navigate('guides')" class="nav-item text-gray-500 px-4 py-2 font-black text-sm transition" data-target="view-guides">المرشدات</button>
+                <button onclick="navigate('evaluation')" class="nav-item text-gray-500 px-4 py-2 font-black text-sm transition" data-target="view-evaluation">التقييم</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-6xl">
+
+        <section id="view-home" class="view-section block">
+            <div class="max-w-3xl mx-auto text-center py-16 px-6 bg-white rounded-3xl shadow-xl border border-gray-100 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-36 h-36 bg-blue-50 rounded-full -mr-16 -mt-16 -z-10 opacity-60"></div>
+                <div class="absolute bottom-0 left-0 w-36 h-36 bg-teal-50 rounded-full -ml-16 -mb-16 -z-10 opacity-60"></div>
+                
+                <i class="fa-solid fa-graduation-cap text-6xl text-rafeeq-teal mb-6"></i>
+                <h2 class="text-3xl font-black text-rafeeq-blue mb-4">أهلاً بكِ في تطبيق رفيق</h2>
+                <p class="text-gray-600 font-bold text-lg mb-10 max-w-xl mx-auto leading-relaxed">
+                    تنظيم وقت انتظار الطلبة داخل المدرسة بطريقة آمنة ومفيدة من خلال ربط الطالبات مع المرشدات المؤهلات.
+                </p>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
+                    <button onclick="navigate('request')" class="bg-rafeeq-blue text-white px-6 py-5 rounded-2xl shadow-md hover:scale-[1.02] active:scale-95 font-black text-base transition flex flex-col items-center gap-3">
+                        <i class="fa-solid fa-calendar-check text-2xl"></i>
+                        <span>طلب جلسة</span>
+                    </button>
+                    <button onclick="navigate('guides')" class="bg-rafeeq-teal text-white px-6 py-5 rounded-2xl shadow-md hover:scale-[1.02] active:scale-95 font-black text-base transition flex flex-col items-center gap-3">
+                        <i class="fa-solid fa-id-card-clip text-2xl"></i>
+                        <span>عرض المرشدات</span>
+                    </button>
+                    <button onclick="navigate('evaluation')" class="bg-amber-500 text-white px-6 py-5 rounded-2xl shadow-md hover:scale-[1.02] active:scale-95 font-black text-base transition flex flex-col items-center gap-3">
+                        <i class="fa-solid fa-star-half-stroke text-2xl"></i>
+                        <span>تقييم الخدمة</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+
+        <section id="view-request" class="view-section hidden">
+            <div class="max-w-2xl mx-auto bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+                <h2 class="text-2xl font-black text-rafeeq-blue mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-rafeeq-teal"></i> طلب جلسة جديدة
+                </h2>
+                <p class="text-gray-400 font-bold text-sm mb-8">أدخلي البيانات التالية بدقة لحجز ومتابعة جلسة الانتظار</p>
+                
+                <form onsubmit="handleRequestSubmit(event)" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-black text-gray-700 mb-2">اسم الطالب / الطالبة</label>
+                        <input type="text" required placeholder="ادخلي الاسم الكامل" class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-bold transition bg-gray-50/50">
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-black text-gray-700 mb-2">الصف</label>
+                            <select required class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 outline-none font-bold text-gray-700 transition bg-gray-50/50 cursor-pointer">
+                                <option value="" disabled selected>اختاري الصف</option>
+                                <option value="الصف الثامن">الصف الثامن</option>
+                                <option value="الصف التاسع">الصف التاسع</option>
+                                <option value="الصف العاشر">الصف العاشر</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-black text-gray-700 mb-2">فترة الانتظار</label>
+                            <select required class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 outline-none font-bold text-gray-700 transition bg-gray-50/50 cursor-pointer">
+                                <option value="" disabled selected>اختاري الفترة</option>
+                                <option value="الفترة الصباحية">الفترة الصباحية</option>
+                                <option value="بعد الدوام المباشر">بعد الدوام المباشر</option>
+                                <option value="أثناء الأنشطة">أثناء الأنشطة</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-black text-gray-700 mb-3">نوع الخدمة الموجهة</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label class="flex items-center gap-3 p-4 border border-gray-200 rounded-2xl cursor-pointer hover:bg-gray-50 transition active:scale-98">
+                                <input type="radio" name="service_type" value="أكاديمي وتوجيهي" class="w-5 h-5 text-rafeeq-teal focus:ring-rafeeq-teal">
+                                <span class="font-black text-gray-700 text-sm">أكاديمي وتوجيهي</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-4 border border-gray-200 rounded-2xl cursor-pointer hover:bg-gray-50 transition active:scale-98">
+                                <input type="radio" name="service_type" value="ترفيهي وإرشادي" class="w-5 h-5 text-rafeeq-teal focus:ring-rafeeq-teal">
+                                <span class="font-black text-gray-700 text-sm">ترفيهي وإرشادي</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-black text-gray-700 mb-2">الطالبة مقدمة الخدمة (المرشدة)</label>
+                        <select id="guideSelectDropdown" class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 outline-none font-bold text-gray-700 transition bg-gray-50/50 cursor-pointer">
+                            </select>
+                    </div>
+
+                    <button type="submit" class="w-full bg-rafeeq-blue text-white py-4 rounded-2xl font-black text-lg shadow-lg hover:bg-opacity-95 transition flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-paper-plane"></i> إرسال الطلب
+                    </button>
+                </form>
+            </div>
+        </section>
+
+
+        <section id="view-guides" class="view-section hidden">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-black text-rafeeq-blue mb-2">المرشدات المتاحات لإلقاء الخدمة</h2>
+                <p class="text-gray-400 font-bold text-sm">قائمة بطالباتنا المتميزات المؤهلات لتقديم الدعم والإرشاد</p>
+            </div>
+            
+            <div id="guidesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                </div>
+        </section>
+
+
+        <section id="view-evaluation" class="view-section hidden">
+            <div class="max-w-2xl mx-auto bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+                <h2 class="text-2xl font-black text-rafeeq-blue mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-star-half-stroke text-rafeeq-yellow"></i> تقييم الخدمة المدرسية
+                </h2>
+                <p class="text-gray-400 font-bold text-sm mb-8">شاركينا رأيك الصادق لمساعدتنا في دعم زميلاتك وتطوير بيئتنا المدرسية</p>
+                
+                <form onsubmit="handleEvalSubmit(event)" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-black text-gray-700 mb-2">المرشدة (اختياري)</label>
+                        <select id="evalGuideSelect" class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 outline-none font-bold text-gray-700 transition bg-gray-50/50 cursor-pointer">
+                            </select>
+                    </div>
+
+                    <div class="text-center bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                        <label class="block text-sm font-black text-gray-700 mb-3">التقييم بالنجوم</label>
+                        <div class="star-rating flex justify-center gap-3 text-3xl mb-2" dir="ltr">
+                            <i class="fa-solid fa-star text-gray-200" data-value="1"></i>
+                            <i class="fa-solid fa-star text-gray-200" data-value="2"></i>
+                            <i class="fa-solid fa-star text-gray-200" data-value="3"></i>
+                            <i class="fa-solid fa-star text-gray-200" data-value="4"></i>
+                            <i class="fa-solid fa-star text-gray-200" data-value="5"></i>
+                        </div>
+                        <input type="hidden" id="ratingValue" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-black text-gray-700 mb-3">ملاحظات سريعة</label>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" class="feedback-chip bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-bold text-sm shadow-sm cursor-pointer select-none">تعامل ممتاز</button>
+                            <button type="button" class="feedback-chip bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-bold text-sm shadow-sm cursor-pointer select-none">شرح واضح</button>
+                            <button type="button" class="feedback-chip bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-bold text-sm shadow-sm cursor-pointer select-none">التزام بالوقت</button>
+                            <button type="button" class="feedback-chip bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-bold text-sm shadow-sm cursor-pointer select-none">تحتاج تحسين</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-black text-gray-700 mb-2">تعليق إضافي (اختياري)</label>
+                        <textarea rows="4" placeholder="اكتبي تعليقك هنا ...." class="w-full px-4 py-3.5 rounded-2xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-bold transition bg-gray-50/50 resize-none"></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full bg-rafeeq-blue text-white py-4 rounded-2xl font-black text-lg shadow-lg hover:bg-opacity-95 transition flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-share-from-square"></i> إرسال التقييم
+                    </button>
+                </form>
+            </div>
+        </section>
+
+    </main>
+
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.06)] border-t border-gray-100 px-6 py-2.5 flex justify-between items-center z-50">
+        <button onclick="navigate('home')" class="nav-item active flex flex-col items-center gap-1 text-[11px] font-black transition text-gray-400" data-target="view-home">
+            <i class="fa-solid fa-house text-xl"></i>
+            <span>الرئيسية</span>
+        </button>
+        <button onclick="navigate('request')" class="nav-item flex flex-col items-center gap-1 text-[11px] font-black transition text-gray-400" data-target="view-request">
+            <i class="fa-solid fa-calendar-plus text-xl"></i>
+            <span>طلب جلسة</span>
+        </button>
+        <button onclick="navigate('guides')" class="nav-item flex flex-col items-center gap-1 text-[11px] font-black transition text-gray-400" data-target="view-guides">
+            <i class="fa-solid fa-user-graduate text-xl"></i>
+            <span>المرشدات</span>
+        </button>
+        <button onclick="navigate('evaluation')" class="nav-item flex flex-col items-center gap-1 text-[11px] font-black transition text-gray-400" data-target="view-evaluation">
+            <i class="fa-solid fa-star text-xl"></i>
+            <span>التقييم</span>
+        </button>
+    </div>
+
+    <div id="toast" class="fixed top-10 left-1/2 text-white px-8 py-4 rounded-2xl shadow-xl z-[100] flex items-center gap-3 font-bold text-lg border-2 transition-all duration-400 transform -translate-x-1/2">
+        </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
