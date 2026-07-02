@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق رفيق | مدرسة حكمت الساكت</title>
+    
+    <!-- خطوط جوجل (Tajawal) لتناسب التطبيقات العربية -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- مكتبة الأيقونات FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'rafeeq-blue': '#0F2C59',    /* الكحلي من اللوغو */
+                        'rafeeq-teal': '#299081',    /* الأخضر/التركوازي من اللوغو */
+                        'rafeeq-yellow': '#F4B333',  /* الأصفر من اللوغو */
+                        'rafeeq-bg': '#f0f4f8',      /* لون خلفية حيوي وفاتح */
+                    },
+                    fontFamily: {
+                        sans: ['Tajawal', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                        'glow': '0 0 20px rgba(41, 144, 129, 0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            /* خلفية متدرجة وحيوية تعطي طابعاً مريحاً ومدرسياً */
+            background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            font-family: 'Tajawal', sans-serif;
+        }
+
+        /* تحسين شكل شريط التمرير (Scrollbar) للكمبيوتر */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        /* تأثيرات النجوم للتقييم */
+        .star-rating .fa-star {
+            color: #e2e8f0;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .star-rating .fa-star:hover {
+            transform: scale(1.2);
+        }
+        .star-rating .fa-star.active {
+            color: #F4B333;
+            text-shadow: 0 0 10px rgba(244, 179, 51, 0.5);
+        }
+
+        /* أزرار الملاحظات في التقييم */
+        .feedback-chip {
+            transition: all 0.3s ease;
+        }
+        .feedback-chip.active {
+            background-color: #0F2C59;
+            color: white;
+            border-color: #0F2C59;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(15, 44, 89, 0.2);
+        }
+
+        /* سهم القوائم المنسدلة */
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%230F2C59'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: left 1rem center;
+            background-size: 1.2em;
+        }
+
+        /* حركات التبديل بين الصفحات */
+        .view-section {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* تخصيص زر التنقل النشط (للكمبيوتر والهاتف) */
+        .nav-item.active {
+            color: #299081;
+            font-weight: 800;
+            position: relative;
+        }
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 4px;
+            background-color: #299081;
+            border-radius: 4px;
+        }
+
+        /* رسالة التنبيه العائمة (Toast) */
+        #toast {
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            transform: translate(-50%, -20px);
+        }
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            transform: translate(-50%, 20px);
+        }
+
+        /* تأثيرات البطاقات */
+        .hover-card {
+            transition: all 0.3s ease;
+        }
+        .hover-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px -10px rgba(15, 44, 89, 0.15);
+        }
+    </style>
+</head>
+<body class="text-gray-800 pb-20 md:pb-0">
+
+    <!-- شريط التنقل العلوي (يظهر على شاشات الكمبيوتر والتابلت، ويختفي على الهواتف) -->
+    <nav class="hidden md:flex bg-white shadow-md sticky top-0 z-50 py-3 px-6 justify-between items-center">
+        <!-- منطقة الشعار -->
+        <div class="flex items-center gap-3 cursor-pointer" onclick="navigate('home')">
+            <!-- استخدام اللوغو المرفق -->
+            <img src="لوغو رفيق.jpeg" alt="شعار رفيق" class="w-12 h-12 object-contain rounded-full border border-gray-100 p-0.5" onerror="this.src='https://placehold.co/100x100/0F2C59/FFFFFF?text=Rafeeq'">
+            <div>
+                <h1 class="text-xl font-extrabold text-rafeeq-blue leading-none">رفيق</h1>
+                <p class="text-[10px] text-rafeeq-teal font-bold mt-1">مدرسة حكمت الساكت</p>
+            </div>
+        </div>
+
+        <!-- روابط التنقل -->
+        <div class="flex items-center gap-8">
+            <button onclick="navigate('home')" class="nav-item active flex items-center gap-2 text-gray-500 hover:text-rafeeq-blue transition-colors" data-target="view-home">
+                <i class="fa-solid fa-house"></i>
+                <span>الرئيسية</span>
+            </button>
+            <button onclick="navigate('request')" class="nav-item flex items-center gap-2 text-gray-500 hover:text-rafeeq-blue transition-colors" data-target="view-request">
+                <i class="fa-solid fa-calendar-plus"></i>
+                <span>طلب جلسة</span>
+            </button>
+            <button onclick="navigate('guides')" class="nav-item flex items-center gap-2 text-gray-500 hover:text-rafeeq-blue transition-colors" data-target="view-guides">
+                <i class="fa-solid fa-users"></i>
+                <span>المرشدات</span>
+            </button>
+            <button onclick="navigate('eval')" class="nav-item flex items-center gap-2 text-gray-500 hover:text-rafeeq-blue transition-colors" data-target="view-eval">
+                <i class="fa-solid fa-star"></i>
+                <span>التقييم</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- الحاوية الرئيسية للمحتوى والتي تدعم التمرير بشكل طبيعي -->
+    <main class="flex-grow w-full max-w-6xl mx-auto px-4 py-8 md:py-12">
+
+        <!-- الشاشة 1: الرئيسية -->
+        <div id="view-home" class="view-section block">
+            
+            <!-- الترويسة واللوغو (مكبر في الصفحة الرئيسية) -->
+            <div class="text-center mb-12">
+                <div class="relative inline-block mb-6">
+                    <div class="absolute inset-0 bg-rafeeq-teal blur-2xl opacity-20 rounded-full"></div>
+                    <img src="لوغو رفيق.jpeg" alt="لوغو تطبيق رفيق" class="relative w-40 md:w-48 h-auto mx-auto drop-shadow-xl rounded-3xl" onerror="this.src='https://placehold.co/200x200/0F2C59/FFFFFF?text=Rafeeq+Logo'">
+                </div>
+                
+                <h1 class="text-4xl md:text-5xl font-black text-rafeeq-blue mb-3">تطبيق رفيق</h1>
+                <h2 class="text-lg md:text-xl font-bold text-rafeeq-teal mb-4">مدرسة حكمت الساكت الأساسية المختلطة</h2>
+                
+                <div class="bg-white/60 backdrop-blur-sm border border-white p-4 rounded-2xl max-w-lg mx-auto shadow-sm">
+                    <p class="text-gray-600 font-medium text-sm md:text-base leading-relaxed">
+                        <i class="fa-solid fa-quote-right text-rafeeq-yellow opacity-50 mr-2 text-lg"></i>
+                        تنظيم وقت انتظار الطلبة داخل المدرسة بطريقة آمنة ومفيدة
+                        <i class="fa-solid fa-quote-left text-rafeeq-yellow opacity-50 ml-2 text-lg"></i>
+                    </p>
+                </div>
+            </div>
+
+            <!-- الأزرار الرئيسية الثلاثة (تصميم شبكي للكمبيوتر، عمودي للهاتف) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-16">
+                <!-- بطاقة طلب جلسة -->
+                <button onclick="navigate('request')" class="hover-card bg-white rounded-3xl p-8 shadow-soft border border-gray-100 flex flex-col items-center justify-center gap-4 group cursor-pointer relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -z-10 transition-transform group-hover:scale-110"></div>
+                    <div class="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-3xl shadow-inner group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300">
+                        <i class="fa-solid fa-calendar-plus"></i>
+                    </div>
+                    <h3 class="text-2xl font-black text-rafeeq-blue">طلب جلسة</h3>
+                    <p class="text-gray-500 text-sm text-center">احجز موعداً مسبقاً لاستغلال وقت الانتظار.</p>
+                </button>
+
+                <!-- بطاقة عرض المرشدات -->
+                <button onclick="navigate('guides')" class="hover-card bg-white rounded-3xl p-8 shadow-soft border border-gray-100 flex flex-col items-center justify-center gap-4 group cursor-pointer relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-teal-50 rounded-bl-full -z-10 transition-transform group-hover:scale-110"></div>
+                    <div class="w-20 h-20 bg-teal-100 text-rafeeq-teal rounded-full flex items-center justify-center text-3xl shadow-inner group-hover:bg-rafeeq-teal group-hover:text-white transition-colors duration-300">
+                        <i class="fa-solid fa-users-viewfinder"></i>
+                    </div>
+                    <h3 class="text-2xl font-black text-rafeeq-blue">عرض المرشدات</h3>
+                    <p class="text-gray-500 text-sm text-center">تعرف على الطالبات المتاحات لتقديم الخدمة.</p>
+                </button>
+
+                <!-- بطاقة تقييم الخدمة -->
+                <button onclick="navigate('eval')" class="hover-card bg-white rounded-3xl p-8 shadow-soft border border-gray-100 flex flex-col items-center justify-center gap-4 group cursor-pointer relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-yellow-50 rounded-bl-full -z-10 transition-transform group-hover:scale-110"></div>
+                    <div class="w-20 h-20 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center text-3xl shadow-inner group-hover:bg-rafeeq-yellow group-hover:text-white transition-colors duration-300">
+                        <i class="fa-solid fa-star-half-stroke"></i>
+                    </div>
+                    <h3 class="text-2xl font-black text-rafeeq-blue">تقييم الخدمة</h3>
+                    <p class="text-gray-500 text-sm text-center">شاركنا رأيك وساعدنا في تحسين البرنامج.</p>
+                </button>
+            </div>
+
+            <!-- حقوق التصميم وفريق العمل -->
+            <div class="text-center bg-white/80 backdrop-blur rounded-2xl p-6 max-w-2xl mx-auto shadow-sm border border-gray-100">
+                <p class="text-rafeeq-blue font-bold mb-2">
+                    <i class="fa-solid fa-lightbulb text-rafeeq-yellow mr-2"></i>
+                    فكرة وإعداد الطالبات المبدعات:
+                </p>
+                <div class="flex flex-wrap justify-center gap-2 mb-4">
+                    <span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-bold">آلاء</span>
+                    <span class="bg-teal-50 text-teal-700 px-3 py-1 rounded-full text-sm font-bold">جنى</span>
+                    <span class="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold">سهام</span>
+                    <span class="bg-purple-50 text-purple-700 px-3 py-1 rounded-full text-sm font-bold">ميار</span>
+                    <span class="bg-pink-50 text-pink-700 px-3 py-1 rounded-full text-sm font-bold">سارة</span>
+                </div>
+                <div class="border-t border-gray-200 pt-3 inline-block">
+                    <p class="text-gray-600 font-bold text-sm">
+                        إشراف المعلمة الفاضلة: <span class="text-rafeeq-teal">أماني أبو رمان</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- الشاشة 2: طلب جلسة -->
+        <div id="view-request" class="view-section hidden max-w-2xl mx-auto">
+            
+            <div class="bg-white rounded-3xl shadow-soft p-6 md:p-10 border border-gray-100 relative overflow-hidden">
+                <!-- زينة الخلفية -->
+                <div class="absolute -top-10 -right-10 w-40 h-40 bg-blue-50 rounded-full opacity-50 z-0 pointer-events-none"></div>
+
+                <div class="relative z-10">
+                    <div class="flex items-center justify-between mb-8 border-b border-gray-100 pb-4">
+                        <div>
+                            <h2 class="text-3xl font-black text-rafeeq-blue flex items-center gap-3">
+                                <i class="fa-solid fa-calendar-check text-rafeeq-teal"></i> طلب جلسة
+                            </h2>
+                            <p class="text-gray-500 mt-2 text-sm font-medium">الرجاء تعبئة النموذج أدناه بدقة لحجز موعد.</p>
+                        </div>
+                    </div>
+
+                    <form id="requestForm" class="space-y-6" onsubmit="handleRequestSubmit(event)">
+                        
+                        <!-- اسم الطالبة -->
+                        <div>
+                            <label class="block text-sm font-extrabold text-rafeeq-blue mb-2">اسم الطالب / الطالبة <span class="text-red-500">*</span></label>
+                            <input type="text" required placeholder="الاسم الرباعي" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-gray-700 focus:outline-none focus:border-rafeeq-teal focus:ring-2 focus:ring-teal-100 transition-all font-medium">
+                        </div>
+
+                        <!-- الصف الدراسي (من الأول للعاشر) -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-extrabold text-rafeeq-blue mb-2">الصف الدراسي <span class="text-red-500">*</span></label>
+                                <select required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-gray-700 focus:outline-none focus:border-rafeeq-teal focus:ring-2 focus:ring-teal-100 transition-all font-medium cursor-pointer">
+                                    <option value="" disabled selected>اختاري الصف</option>
+                                    <option value="1">الصف الأول</option>
+                                    <option value="2">الصف الثاني</option>
+                                    <option value="3">الصف الثالث</option>
+                                    <option value="4">الصف الرابع</option>
+                                    <option value="5">الصف الخامس</option>
+                                    <option value="6">الصف السادس</option>
+                                    <option value="7">الصف السابع</option>
+                                    <option value="8">الصف الثامن</option>
+                                    <option value="9">الصف التاسع</option>
+                                    <option value="10">الصف العاشر</option>
+                                </select>
+                            </div>
+
+                            <!-- فترات الانتظار الدقيقة -->
+                            <div>
+                                <label class="block text-sm font-extrabold text-rafeeq-blue mb-2">فترة الانتظار <span class="text-red-500">*</span></label>
+                                <select required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-gray-700 focus:outline-none focus:border-rafeeq-teal focus:ring-2 focus:ring-teal-100 transition-all font-medium cursor-pointer">
+                                    <option value="" disabled selected>اختاري الفترة (12:30 إلى 3:00)</option>
+                                    <option value="period1">من 12:30 إلى 1:15</option>
+                                    <option value="period2">من 1:15 إلى 2:00</option>
+                                    <option value="period3">من 2:15 إلى 3:00</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- نوع الخدمة الدقيقة -->
+                        <div>
+                            <label class="block text-sm font-extrabold text-rafeeq-blue mb-2">نوع الخدمة الموجهة <span class="text-red-500">*</span></label>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <!-- استبدال Select بأزرار راديو بتصميم بطاقات حيوية -->
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="service_type" value="homework" class="peer sr-only" required>
+                                    <div class="rounded-xl border-2 border-gray-100 bg-gray-50 p-4 hover:bg-blue-50 transition-colors peer-checked:border-rafeeq-blue peer-checked:bg-blue-50 text-center">
+                                        <i class="fa-solid fa-book-open text-2xl text-blue-500 mb-2"></i>
+                                        <div class="font-bold text-rafeeq-blue text-sm">حل واجبات</div>
+                                    </div>
+                                    <div class="absolute top-2 left-2 w-4 h-4 bg-rafeeq-blue rounded-full opacity-0 peer-checked:opacity-100 transition-opacity flex items-center justify-center">
+                                        <i class="fa-solid fa-check text-white text-[8px]"></i>
+                                    </div>
+                                </label>
+                                
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="service_type" value="play" class="peer sr-only">
+                                    <div class="rounded-xl border-2 border-gray-100 bg-gray-50 p-4 hover:bg-yellow-50 transition-colors peer-checked:border-rafeeq-yellow peer-checked:bg-yellow-50 text-center">
+                                        <i class="fa-solid fa-puzzle-piece text-2xl text-yellow-500 mb-2"></i>
+                                        <div class="font-bold text-rafeeq-blue text-sm">لعب موجه</div>
+                                    </div>
+                                    <div class="absolute top-2 left-2 w-4 h-4 bg-rafeeq-yellow rounded-full opacity-0 peer-checked:opacity-100 transition-opacity flex items-center justify-center">
+                                        <i class="fa-solid fa-check text-white text-[8px]"></i>
+                                    </div>
+                                </label>
+
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="service_type" value="study" class="peer sr-only">
+                                    <div class="rounded-xl border-2 border-gray-100 bg-gray-50 p-4 hover:bg-teal-50 transition-colors peer-checked:border-rafeeq-teal peer-checked:bg-teal-50 text-center">
+                                        <i class="fa-solid fa-graduation-cap text-2xl text-teal-500 mb-2"></i>
+                                        <div class="font-bold text-rafeeq-blue text-sm">متابعة دراسية</div>
+                                    </div>
+                                    <div class="absolute top-2 left-2 w-4 h-4 bg-rafeeq-teal rounded-full opacity-0 peer-checked:opacity-100 transition-opacity flex items-center justify-center">
+                                        <i class="fa-solid fa-check text-white text-[8px]"></i>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- اختيار المرشدة -->
+                        <div>
+                            <label class="block text-sm font-extrabold text-rafeeq-blue mb-2">الطالبة مقدمة الخدمة (المرشدة)</label>
+                            <select class="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-gray-700 focus:outline-none focus:border-rafeeq-teal focus:ring-2 focus:ring-teal-100 transition-all font-medium cursor-pointer" id="guideSelectDropdown">
+                                <!-- سيتم ملؤها بالجافاسكربت -->
+                            </select>
+                        </div>
+
+                        <!-- زر الإرسال -->
+                        <button type="submit" class="w-full bg-gradient-to-r from-rafeeq-blue to-blue-700 hover:from-blue-700 hover:to-rafeeq-blue text-white font-black rounded-xl py-4 mt-8 flex items-center justify-center gap-3 shadow-lg transform transition-all hover:-translate-y-1 hover:shadow-xl text-lg">
+                            إرسال الطلب الآن
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- الشاشة 3: عرض المرشدات -->
+        <div id="view-guides" class="view-section hidden w-full">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-black text-rafeeq-blue inline-flex items-center gap-3 justify-center mb-2">
+                    <i class="fa-solid fa-user-tie text-rafeeq-teal"></i> فريق المرشدات
+                </h2>
+                <p class="text-gray-500 text-lg">الطالبات المتاحات لتقديم الخدمات ومساعدة الزميلات</p>
+            </div>
+
+            <!-- شبكة المرشدات المتجاوبة -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="guidesGrid">
+                <!-- سيتم ملء هذه الشبكة بواسطة الجافاسكربت -->
+            </div>
+        </div>
+
+        <!-- الشاشة 4: تقييم الخدمة -->
+        <div id="view-eval" class="view-section hidden max-w-2xl mx-auto">
+            <div class="bg-white rounded-3xl shadow-soft p-6 md:p-10 border border-gray-100 relative">
+                
+                <div class="text-center border-b border-gray-100 pb-6 mb-8">
+                    <div class="w-16 h-16 bg-yellow-50 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl text-rafeeq-yellow">
+                        <i class="fa-solid fa-ranking-star"></i>
+                    </div>
+                    <h2 class="text-3xl font-black text-rafeeq-blue mb-2">تقييم الخدمة</h2>
+                    <p class="text-gray-500 font-medium">رأيك يهمنا جداً لتحسين وتطوير تطبيق رفيق.</p>
+                </div>
+
+                <form id="evalForm" class="space-y-8" onsubmit="handleEvalSubmit(event)">
+                    
+                    <!-- التقييم بالنجوم بشكل كبير وواضح -->
+                    <div class="text-center bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                        <label class="block text-lg font-black text-rafeeq-blue mb-4">ما هو تقييمك العام؟ <span class="text-red-500">*</span></label>
+                        <div class="flex justify-center gap-4 text-4xl star-rating" id="starContainer" dir="ltr">
+                            <!-- الترتيب LTR لتبدأ النجوم من اليسار لليمين أو حسب الرغبة -->
+                            <i class="fa-solid fa-star" data-value="1"></i>
+                            <i class="fa-solid fa-star" data-value="2"></i>
+                            <i class="fa-solid fa-star" data-value="3"></i>
+                            <i class="fa-solid fa-star" data-value="4"></i>
+                            <i class="fa-solid fa-star" data-value="5"></i>
+                        </div>
+                        <input type="hidden" id="ratingValue" required>
+                    </div>
+
+                    <!-- اختيار المرشدة -->
+                    <div>
+                        <label class="block text-sm font-extrabold text-rafeeq-blue mb-2">اسم المرشدة (اختياري)</label>
+                        <select class="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-gray-700 focus:outline-none focus:border-rafeeq-teal focus:ring-2 focus:ring-teal-100 transition-all font-medium cursor-pointer" id="evalGuideSelect">
+                            <!-- سيتم ملؤها بالجافاسكربت -->
+                        </select>
+                    </div>
+
+                    <!-- ملاحظات سريعة (أزرار تفاعلية) -->
+                    <div>
+                        <label class="block text-sm font-extrabold text-rafeeq-blue mb-3">ملاحظات سريعة</label>
+                        <div class="flex flex-wrap gap-3" id="feedbackChips">
+                            <button type="button" class="feedback-chip bg-white border-2 border-gray-200 text-gray-600 font-bold px-5 py-2.5 rounded-xl hover:border-rafeeq-blue hover:text-rafeeq-blue">تعامل ممتاز 💖</button>
+                            <button type="button" class="feedback-chip bg-white border-2 border-gray-200 text-gray-600 font-bold px-5 py-2.5 rounded-xl hover:border-rafeeq-blue hover:text-rafeeq-blue">شرح واضح 📚</button>
+                            <button type="button" class="feedback-chip bg-white border-2 border-gray-200 text-gray-600 font-bold px-5 py-2.5 rounded-xl hover:border-rafeeq-blue hover:text-rafeeq-blue">التزام بالوقت ⏱️</button>
+                            <button type="button" class="feedback-chip bg-white border-2 border-gray-200 text-gray-600 font-bold px-5 py-2.5 rounded-xl hover:border-red-400 hover:text-red-500">تحتاج تحسين 💡</button>
+                        </div>
+                    </div>
+
+                    <!-- تعليق إضافي -->
+                    <div>
+                        <label class="block text-sm font-extrabold text-rafeeq-blue mb-2">تعليق إضافي (اختياري)</label>
+                        <textarea rows="4" placeholder="اكتبي لنا أي اقتراحات أو ملاحظات إضافية هنا..." class="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-gray-700 focus:outline-none focus:border-rafeeq-yellow focus:ring-2 focus:ring-yellow-100 transition-all font-medium resize-none"></textarea>
+                    </div>
+
+                    <!-- زر الإرسال -->
+                    <button type="submit" class="w-full bg-gradient-to-r from-rafeeq-teal to-teal-600 hover:from-teal-600 hover:to-rafeeq-teal text-white font-black rounded-xl py-4 mt-4 flex items-center justify-center gap-3 shadow-lg transform transition-all hover:-translate-y-1 hover:shadow-xl text-lg">
+                        إرسال التقييم
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- شريط التنقل السفلي (يظهر فقط على شاشات الهاتف - Mobile Only) -->
+    <div class="md:hidden fixed bottom-0 w-full bg-white border-t border-gray-200 px-2 pb-5 pt-3 flex justify-around items-center shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] z-50 rounded-t-3xl">
+        <button onclick="navigate('home')" class="nav-item active flex flex-col items-center gap-1 p-2 w-16 text-gray-400 transition-colors" data-target="view-home">
+            <i class="fa-solid fa-house text-xl mb-1"></i>
+            <span class="text-[11px] font-extrabold">الرئيسية</span>
+        </button>
+        <button onclick="navigate('request')" class="nav-item flex flex-col items-center gap-1 p-2 w-16 text-gray-400 transition-colors" data-target="view-request">
+            <i class="fa-solid fa-calendar-plus text-xl mb-1"></i>
+            <span class="text-[11px] font-extrabold">جلسة</span>
+        </button>
+        <button onclick="navigate('guides')" class="nav-item flex flex-col items-center gap-1 p-2 w-16 text-gray-400 transition-colors" data-target="view-guides">
+            <i class="fa-solid fa-users text-xl mb-1"></i>
+            <span class="text-[11px] font-extrabold">المرشدات</span>
+        </button>
+        <button onclick="navigate('eval')" class="nav-item flex flex-col items-center gap-1 p-2 w-16 text-gray-400 transition-colors" data-target="view-eval">
+            <i class="fa-solid fa-star text-xl mb-1"></i>
+            <span class="text-[11px] font-extrabold">التقييم</span>
+        </button>
+    </div>
+
+    <!-- رسالة التنبيه العائمة -->
+    <div id="toast" class="fixed top-10 left-1/2 bg-green-600 text-white px-8 py-4 rounded-2xl shadow-xl z-[100] flex items-center gap-3 font-bold text-lg border-2 border-green-500">
+        <i class="fa-solid fa-circle-check text-white text-2xl"></i>
+        <span id="toast-message">تمت العملية بنجاح!</span>
+    </div>
+
+    <script>
+        // بيانات المرشدات محدثة لتعكس الواقع المطلوب
+        const guidesData = [
+            { id: 'g1', name: 'لمى حسن', grade: 'الصف العاشر', rating: 5, reviews: 15, available: true },
+            { id: 'g2', name: 'سارة أحمد', grade: 'الصف العاشر', rating: 5, reviews: 12, available: true },
+            { id: 'g3', name: 'نور الهدى', grade: 'الصف التاسع', rating: 5, reviews: 8, available: true },
+            { id: 'g4', name: 'ريم خالد', grade: 'الصف العاشر', rating: 4, reviews: 8, available: false },
+            { id: 'g5', name: 'دانا يوسف', grade: 'الصف التاسع', rating: 4, reviews: 3, available: true },
+            { id: 'g6', name: 'هبة محمد', grade: 'الصف الثامن', rating: 0, reviews: 0, available: true }
+        ];
+
+        // دالة التنقل بين الصفحات
+        function navigate(viewName) {
+            // إخفاء كل الشاشات
+            document.querySelectorAll('.view-section').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('block');
+            });
+            
+            // إظهار الشاشة المطلوبة
+            const targetView = document.getElementById(`view-${viewName}`);
+            targetView.classList.remove('hidden');
+            targetView.classList.add('block');
+
+            // تحديث حالة الأزرار (إزالة active من الجميع ثم إضافتها للزر الحالي)
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('text-gray-400', 'md:text-gray-500'); // لون غير نشط للهاتف والكمبيوتر
+            });
+            
+            const activeBtns = document.querySelectorAll(`.nav-item[data-target="view-${viewName}"]`);
+            activeBtns.forEach(btn => {
+                btn.classList.add('active');
+                btn.classList.remove('text-gray-400', 'md:text-gray-500');
+            });
+
+            // التمرير السلس لأعلى الصفحة عند تبديل الأقسام
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // دالة عرض رسالة التنبيه
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.className = `fixed top-10 left-1/2 text-white px-8 py-4 rounded-2xl shadow-xl z-[100] flex items-center gap-3 font-bold text-lg border-2 ${isError ? 'bg-red-600 border-red-500' : 'bg-green-600 border-green-500'} transition-all duration-400 transform -translate-x-1/2`;
+            
+            const icon = isError ? '<i class="fa-solid fa-triangle-exclamation text-white text-2xl"></i>' : '<i class="fa-solid fa-circle-check text-white text-2xl"></i>';
+            
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3500);
+        }
+
+        // معالجة نموذج طلب جلسة
+        function handleRequestSubmit(e) {
+            e.preventDefault();
+            
+            // التحقق من اختيار نوع الخدمة (الراديو)
+            const serviceType = document.querySelector('input[name="service_type"]:checked');
+            if(!serviceType) {
+                showToast('الرجاء اختيار نوع الخدمة الموجهة.', true);
+                return;
+            }
+
+            showToast('تم إرسال طلب الجلسة بنجاح! سيتم إشعارك قريباً.');
+            e.target.reset(); // تفريغ الحقول
+            
+            // إعادة تعيين أزرار الراديو بصرياً إذا لزم، لكن reset تكفي عادة
+            
+            setTimeout(() => navigate('home'), 2000);
+        }
+
+        // معالجة نموذج التقييم
+        function handleEvalSubmit(e) {
+            e.preventDefault();
+            const rating = document.getElementById('ratingValue').value;
+            if(!rating) {
+                showToast('الرجاء تحديد التقييم بالنجوم أولاً.', true);
+                return;
+            }
+            showToast('شكراً لك! تم استلام تقييمك بنجاح للمساهمة في تطوير رفيق.');
+            e.target.reset();
+            
+            // إعادة ضبط النجوم بصرياً
+            document.querySelectorAll('.star-rating i').forEach(s => s.classList.remove('active'));
+            document.getElementById('ratingValue').value = '';
+            
+            // إعادة ضبط الأزرار التفاعلية
+            document.querySelectorAll('.feedback-chip').forEach(c => c.classList.remove('active'));
+            
+            setTimeout(() => navigate('home'), 2000);
+        }
+
+        // تهيئة النجوم للتقييم
+        const stars = document.querySelectorAll('.star-rating i');
+        const ratingInput = document.getElementById('ratingValue');
+        
+        stars.forEach(star => {
+            star.addEventListener('click', function() {
+                const val = this.getAttribute('data-value');
+                ratingInput.value = val;
+                
+                stars.forEach(s => {
+                    if(s.getAttribute('data-value') <= val) {
+                        s.classList.add('active');
+                    } else {
+                        s.classList.remove('active');
+                    }
+                });
+            });
+        });
+
+        // تهيئة أزرار الملاحظات
+        const chips = document.querySelectorAll('.feedback-chip');
+        chips.forEach(chip => {
+            chip.addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+        });
+
+        // دالة رسم نجوم التقييم بناءً على الرقم للمرشدات
+        function generateStarsHTML(rating) {
+            let starsHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= rating) {
+                    starsHTML += `<i class="fa-solid fa-star text-rafeeq-yellow"></i>`;
+                } else {
+                    starsHTML += `<i class="fa-regular fa-star text-gray-300"></i>`;
+                }
+            }
+            return starsHTML;
+        }
+
+        // دالة توليد بطاقات المرشدات وملء القوائم المنسدلة
+        function renderGuidesAndDropdowns() {
+            const gridContainer = document.getElementById('guidesGrid');
+            const requestDropdown = document.getElementById('guideSelectDropdown');
+            const evalDropdown = document.getElementById('evalGuideSelect');
+            
+            gridContainer.innerHTML = ''; 
+            
+            let dropdownOptions = '<option value="" disabled selected>اختاري المرشدة (اختياري)</option>';
+
+            guidesData.forEach(guide => {
+                // إضافة للقوائم المنسدلة
+                if(guide.available) {
+                    dropdownOptions += `<option value="${guide.id}">${guide.name} - ${guide.grade}</option>`;
+                }
+
+                // تحديد شكل "متاحة/غير متاحة" بوضوح
+                const statusBadge = guide.available 
+                    ? `<div class="bg-green-100 text-green-700 border border-green-200 px-4 py-1.5 rounded-full text-sm font-black flex items-center gap-2 shadow-sm">
+                        <span class="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></span>
+                        متاحة الآن
+                       </div>` 
+                    : `<div class="bg-red-50 text-red-600 border border-red-100 px-4 py-1.5 rounded-full text-sm font-black flex items-center gap-2 shadow-sm">
+                        <span class="w-2.5 h-2.5 bg-red-400 rounded-full"></span>
+                        غير متاحة
+                       </div>`;
+
+                // بناء بطاقة المرشدة بتصميم حيوي
+                const card = `
+                    <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-soft hover-card flex flex-col h-full relative overflow-hidden">
+                        <!-- تزيين علوي -->
+                        <div class="absolute top-0 left-0 w-full h-2 ${guide.available ? 'bg-green-400' : 'bg-red-400'}"></div>
+                        
+                        <div class="flex justify-between items-start mb-6 mt-2">
+                            ${statusBadge}
+                            <div class="w-14 h-14 bg-blue-50 text-blue-400 rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-blue-100">
+                                <i class="fa-solid fa-user-graduate"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-auto">
+                            <h3 class="font-black text-rafeeq-blue text-xl mb-1">${guide.name}</h3>
+                            <p class="text-rafeeq-teal font-bold text-sm mb-4"><i class="fa-solid fa-book-open mr-1"></i> ${guide.grade}</p>
+                            
+                            <div class="bg-gray-50 p-3 rounded-xl flex items-center justify-between border border-gray-100">
+                                <div class="flex text-sm" dir="ltr">
+                                    ${generateStarsHTML(guide.rating)}
+                                </div>
+                                <span class="text-xs font-bold text-gray-500 bg-white px-2 py-1 rounded-md shadow-sm">
+                                    (${guide.reviews} تقييم)
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                gridContainer.innerHTML += card;
+            });
+
+            // ملء القوائم
+            requestDropdown.innerHTML = dropdownOptions;
+            evalDropdown.innerHTML = dropdownOptions;
+        }
+
+        // تهيئة التطبيق عند التحميل
+        window.onload = () => {
+            renderGuidesAndDropdowns();
+            navigate('home'); // بدء التطبيق من الرئيسية
+        };
+
+    </script>
+</body>
+</html>
