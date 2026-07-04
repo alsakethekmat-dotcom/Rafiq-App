@@ -138,27 +138,33 @@
                     const data = userDoc.data();
                     document.getElementById('mentorWelcome').innerText = `مرحباً ${data.name}`;
                     
-                    // إعداد الحالة
+                    // إعداد حالة التوفر الحالية للمرشدة
                     isMentorAvailable = data.isAvailable !== false;
                     updateStatusUI();
 
-                    // الاستماع للطلبات
+                    // الاستماع للطلبات الحية الخاصة بالمرشدة
                     listenToRequests(data.name);
 
-                    // الاستماع للتقييمات والآراء الحية
+                    // الاستماع للتقييمات والآراء المضافة حديثاً
                     listenToReviews(data.name);
+                } else {
+                    window.location.href = "login.html?role=mentor";
                 }
             } else {
                 window.location.href = "login.html?role=mentor";
             }
         });
 
-        // تغيير حالة التوفر
+        // تغيير حالة التوفر عند الضغط على الزر
         document.getElementById('toggleStatusBtn').addEventListener('click', async () => {
             if(!currentUserDocRef) return;
             isMentorAvailable = !isMentorAvailable;
             updateStatusUI();
-            await updateDoc(currentUserDocRef, { isAvailable: isMentorAvailable });
+            try {
+                await updateDoc(currentUserDocRef, { isAvailable: isMentorAvailable });
+            } catch (error) {
+                console.error("خطأ في تحديث حالة التوفر:", error);
+            }
         });
 
         function updateStatusUI() {
@@ -178,6 +184,7 @@
         function listenToRequests(mentorName) {
             const q = query(collection(db, "requests"), where("mentorName", "==", mentorName), orderBy("createdAt", "desc"));
             
+            // 💡 تم إضافة معالج الأخطاء لضمان اكتشاف مشاكل الفهرسة (Indexes) فوراً
             onSnapshot(q, (snapshot) => {
                 const newRequestsDiv = document.getElementById('newRequests');
                 const acceptedRequestsDiv = document.getElementById('acceptedRequests');
@@ -215,10 +222,12 @@
 
                 newRequestsDiv.innerHTML = newHtml || `<p style="text-align: center; color: #888;">لا توجد طلبات جديدة.</p>`;
                 acceptedRequestsDiv.innerHTML = acceptedHtml || `<p style="text-align: center; color: #888;">لا توجد جلسات نشطة حالياً.</p>`;
+            }, (error) => {
+                console.error("خطأ فايربيس في جلب الطلبات للمرشدة:", error);
+                document.getElementById('newRequests').innerHTML = `<p style="text-align: center; color: #dc3545;">خطأ في تحميل الطلبات. يرجى مراجعة الـ Console لبناء الفهرس المركّب.</p>`;
             });
         }
 
-        // دالة جديدة للاستماع للتقييمات والآراء ديناميكياً
         function listenToReviews(mentorName) {
             const qReviews = query(collection(db, "reviews"), where("mentorName", "==", mentorName), orderBy("createdAt", "desc"));
             
@@ -234,11 +243,9 @@
                 snapshot.forEach((docSnap) => {
                     const reviewData = docSnap.data();
                     
-                    // تحويل الرقم (مثل 4 أو 5) إلى نجوم نصية تكرارية
                     const numericRating = reviewData.rating || 5; 
                     const stars = "⭐".repeat(numericRating);
                     
-                    // التحقق من وجود تعليق أو رأي مكتوب
                     const commentText = reviewData.comment ? `<p class="rating-comment">💬 "${reviewData.comment}"</p>` : "";
 
                     reviewsHtml += `
@@ -252,13 +259,18 @@
                 ratingsContainer.innerHTML = reviewsHtml;
             }, (error) => {
                 console.error("خطأ أثناء جلب التقييمات:", error);
-                document.getElementById('ratingsContainer').innerHTML = `<p style="text-align: center; color: #dc3545;">فشل تحميل التقييمات.</p>`;
+                document.getElementById('ratingsContainer').innerHTML = `<p style="text-align: center; color: #dc3545;">فشل تحميل التقييمات الحية.</p>`;
             });
         }
 
-        // جعل دالة التحديث متاحة للـ onClick في HTML
+        // 💡 جعل دالة التحديث محاطة بحماية try...catch لضمان استقرار التطبيق عند انقطاع الشبكة
         window.updateReq = async function(requestId, newStatus) {
-            await updateDoc(doc(db, "requests", requestId), { status: newStatus });
+            try {
+                await updateDoc(doc(db, "requests", requestId), { status: newStatus });
+            } catch (error) {
+                console.error("خطأ أثناء تحديث حالة الطلب:", error);
+                alert("تعذر تحديث حالة الطلب، يرجى التحقق من اتصال الإنترنت.");
+            }
         }
 
         document.getElementById('logoutBtn').addEventListener('click', () => {
