@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,7 +18,7 @@
             color: #16376b;
             border-bottom: 2px solid #eef2f7;
             padding-bottom: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             font-size: 22px;
             display: flex;
             justify-content: space-between;
@@ -86,10 +86,10 @@
                 <p>وقت آمن ومفيد</p>
             </div>
         </a>
-        <button id="logoutBtn" class="btn" style="background:#dc3545; padding: 10px 20px; font-size: 14px;">خروج</button>
+        <button id="logoutBtn" class="btn" style="background:#dc3545; padding: 10px 20px; font-size: 14px; border: none; cursor: pointer; color: white; font-weight: bold; border-radius: 8px;">خروج</button>
     </header>
 
-    <div class="hero" style="align-items: flex-start; flex-direction: column; max-width: 800px; margin: 0 auto; padding: 20px;">
+    <div class="hero" id="mainContent" style="align-items: flex-start; flex-direction: column; max-width: 800px; margin: 0 auto; padding: 20px; display: none;">
         
         <div class="dashboard-section">
             <div class="status-toggle">
@@ -121,6 +121,8 @@
         </div>
     </div>
 
+    <div id="securePageLoader" class="loader" style="display: block; margin: 100px auto;"></div>
+
     <script type="module">
         import { db, auth } from './js/firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
@@ -128,29 +130,42 @@
 
         let currentUserDocRef = null;
         let isMentorAvailable = true;
+        const mainContent = document.getElementById('mainContent');
+        const securePageLoader = document.getElementById('securePageLoader');
 
+        // 🛡️ تطبيق نظام حماية المسار للوحة المرشدة
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                currentUserDocRef = doc(db, "users", user.uid);
-                const userDoc = await getDoc(currentUserDocRef);
-                
-                if (userDoc.exists() && userDoc.data().role === "mentor") {
-                    const data = userDoc.data();
-                    document.getElementById('mentorWelcome').innerText = `مرحباً ${data.name}`;
+                try {
+                    currentUserDocRef = doc(db, "users", user.uid);
+                    const userDoc = await getDoc(currentUserDocRef);
                     
-                    // إعداد حالة التوفر الحالية للمرشدة
-                    isMentorAvailable = data.isAvailable !== false;
-                    updateStatusUI();
+                    // التحقق الصارم: يجب وجود المستند وأن يحمل الحساب دور mentor
+                    if (userDoc.exists() && userDoc.data().role === "mentor") {
+                        const data = userDoc.data();
+                        document.getElementById('mentorWelcome').innerText = `مرحباً ${data.name}`;
+                        
+                        // إعداد حالة التوفر الحالية للمرشدة
+                        isMentorAvailable = data.isAvailable !== false;
+                        updateStatusUI();
 
-                    // الاستماع للطلبات الحية الخاصة بالمرشدة
-                    listenToRequests(data.name);
+                        // إخفاء مؤشر الحماية وعرض لوحة التحكم بشكل آمن
+                        securePageLoader.style.display = "none";
+                        mainContent.style.display = "flex";
 
-                    // الاستماع للتقييمات والآراء المضافة حديثاً
-                    listenToReviews(data.name);
-                } else {
-                    window.location.href = "login.html?role=mentor";
+                        // تشغيل المستمعات الحية للبيانات
+                        listenToRequests(data.name);
+                        listenToReviews(data.name);
+                    } else {
+                        // الحساب لا يحمل صفة مرشدة (تم طرده للصفحة الرئيسية لمنع الاختراق)
+                        window.location.href = "index.html";
+                    }
+                } catch (err) {
+                    console.error("خطأ في جلب صلاحيات المرشدة:", err);
+                    window.location.href = "index.html";
                 }
             } else {
+                // مستخدم غير مسجل، يتم نقله لصفحة تسجيل الدخول المخصصة للمرشدات
                 window.location.href = "login.html?role=mentor";
             }
         });
@@ -184,7 +199,6 @@
         function listenToRequests(mentorName) {
             const q = query(collection(db, "requests"), where("mentorName", "==", mentorName), orderBy("createdAt", "desc"));
             
-            // 💡 تم إضافة معالج الأخطاء لضمان اكتشاف مشاكل الفهرسة (Indexes) فوراً
             onSnapshot(q, (snapshot) => {
                 const newRequestsDiv = document.getElementById('newRequests');
                 const acceptedRequestsDiv = document.getElementById('acceptedRequests');
@@ -224,7 +238,7 @@
                 acceptedRequestsDiv.innerHTML = acceptedHtml || `<p style="text-align: center; color: #888;">لا توجد جلسات نشطة حالياً.</p>`;
             }, (error) => {
                 console.error("خطأ فايربيس في جلب الطلبات للمرشدة:", error);
-                document.getElementById('newRequests').innerHTML = `<p style="text-align: center; color: #dc3545;">خطأ في تحميل الطلبات. يرجى مراجعة الـ Console لبناء الفهرس المركّب.</p>`;
+                document.getElementById('newRequests').innerHTML = `<p style="text-align: center; color: #dc3545;">خطأ في تحميل الطلبات. يرجى بناء الفهرس المركّب إذا لزم الأمر.</p>`;
             });
         }
 
@@ -242,10 +256,8 @@
 
                 snapshot.forEach((docSnap) => {
                     const reviewData = docSnap.data();
-                    
                     const numericRating = reviewData.rating || 5; 
                     const stars = "⭐".repeat(numericRating);
-                    
                     const commentText = reviewData.comment ? `<p class="rating-comment">💬 "${reviewData.comment}"</p>` : "";
 
                     reviewsHtml += `
@@ -263,7 +275,7 @@
             });
         }
 
-        // 💡 جعل دالة التحديث محاطة بحماية try...catch لضمان استقرار التطبيق عند انقطاع الشبكة
+        // إتاحة الدالة للنطاق العالمي لارتباطها بحدث أزرار onclick التفاعلية داخل البطاقات
         window.updateReq = async function(requestId, newStatus) {
             try {
                 await updateDoc(doc(db, "requests", requestId), { status: newStatus });
@@ -273,8 +285,11 @@
             }
         }
 
+        // تحسين زر الخروج بنافذة تأكيد آمنة
         document.getElementById('logoutBtn').addEventListener('click', () => {
-            signOut(auth).then(() => window.location.href = "index.html");
+            if (confirm("هل أنتِ متأكدة من رغبتكِ في تسجيل الخروج؟")) {
+                signOut(auth).then(() => window.location.href = "index.html");
+            }
         });
     </script>
 </body>
