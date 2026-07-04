@@ -9,16 +9,16 @@
 <body>
     <header>
         <a href="index.html" class="logo" style="text-decoration: none;">
-    <img src="images/rafeeq_logo.png" alt="شعار تطبيق رفيق">
-    <div>
-        <h2>رفيق</h2>
-        <p>وقت آمن ومفيد</p>
-    </div>
-</a>
+            <img src="images/rafeeq_logo.png" alt="شعار تطبيق رفيق">
+            <div>
+                <h2>رفيق</h2>
+                <p>وقت آمن ومفيد</p>
+            </div>
+        </a>
     </header>
 
     <div class="hero">
-        <div class="hero-card">
+        <div class="hero-card" id="loginCard" style="display: none;">
             <h1 id="pageTitle">تسجيل الدخول</h1>
             
             <form id="loginForm">
@@ -38,25 +38,32 @@
                 <button type="submit" class="btn green full-btn">دخول</button>
             </form>
 
-            <button type="button" id="googleLoginBtn" class="btn" style="background: #db4437; width: 100%; margin-top: 15px; border: none; cursor: pointer;">
+            <button type="button" id="googleLoginBtn" class="btn" style="background: #db4437; width: 100%; margin-top: 15px; border: none; cursor: pointer; color: white; font-weight: bold; border-radius: 8px; padding: 10px;">
                 دخول باستخدام Google
             </button>
 
-            <hr class="divider">
-            <p class="register-text">ليس لديك حساب؟</p>
-            <a href="register.html" id="registerLink" class="btn blue full-btn">إنشاء حساب جديد</a>
+            <hr class="divider" style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+            <p class="register-text" style="text-align: center; color: #666; margin-bottom: 10px;">ليس لديك حساب؟</p>
+            <a href="register.html" id="registerLink" class="btn blue full-btn" style="text-align: center; text-decoration: none; display: block; padding: 10px;">إنشاء حساب جديد</a>
         </div>
+
+        <div id="pageCheckLoader" class="loader" style="display: block; margin: 50px auto;"></div>
     </div>
 
     <script type="module">
         import { loginUser, loginWithGoogle } from './js/auth.js';
+        import { auth, db } from './js/firebase.js';
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
         
+        const loginCard = document.getElementById("loginCard");
+        const pageCheckLoader = document.getElementById("pageCheckLoader");
+        const title = document.getElementById("pageTitle");
+        const registerLink = document.getElementById("registerLink");
+
         // جلب الدور من الرابط (parent أو mentor)
         const urlParams = new URLSearchParams(window.location.search);
         const role = urlParams.get('role') || 'parent'; 
-        
-        const title = document.getElementById("pageTitle");
-        const registerLink = document.getElementById("registerLink");
         
         if(role === "parent"){
             title.innerHTML = "دخول أولياء الأمور";
@@ -64,6 +71,38 @@
         } else if(role === "mentor"){
             title.innerHTML = "دخول المرشدات";
             registerLink.href = `register.html?role=${role}`;
+        }
+
+        // 🛡️ حماية المسار: فحص ما إذا كان المستخدم مسجلاً بالفعل لتجنب تكرار الدخول
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    const userDoc = await getDoc(doc(db, "users", user.uid));
+                    if (userDoc.exists()) {
+                        const currentRole = userDoc.data().role;
+                        // توجيهه فوراً للوحة التحكم المناسبة له دون عرض الفورم
+                        if (currentRole === "mentor") {
+                            window.location.href = "mentor.html";
+                        } else {
+                            window.location.href = "parent.html";
+                        }
+                    } else {
+                        // الحساب موثق بـ Auth ولكن ملفه محذوف من السجلات
+                        showLoginForm();
+                    }
+                } catch (error) {
+                    console.error("حدث خطأ أثناء فحص الصلاحيات المسبقة:", error);
+                    showLoginForm();
+                }
+            } else {
+                // لا توجد جلسة نشطة، أظهر واجهة تسجيل الدخول بأمان
+                showLoginForm();
+            }
+        });
+
+        function showLoginForm() {
+            pageCheckLoader.style.display = "none";
+            loginCard.style.display = "block";
         }
 
         // معالجة الدخول التقليدي
