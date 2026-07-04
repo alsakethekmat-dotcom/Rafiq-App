@@ -50,6 +50,7 @@
         .badge.pending { background: #fff3cd; color: #856404; }
         .badge.accepted { background: #d4edda; color: #155724; }
         .badge.rejected { background: #f8d7da; color: #721c24; }
+        .badge.rated { background: #e2f0fd; color: #1a73e8; } /* تصميم مخصص لحالة تم التقييم */
         
         @media(max-width: 768px) {
             .action-cards { flex-direction: column; }
@@ -140,7 +141,7 @@
             );
             
             onSnapshot(q, (snapshot) => {
-                if (spinner) spinner.style.display = "none"; 
+                if (snapshot) spinner.style.display = "none"; 
                 container.innerHTML = "";
 
                 if (snapshot.empty) {
@@ -150,14 +151,25 @@
 
                 snapshot.forEach((docSnap) => {
                     const req = docSnap.data();
+                    const requestId = docSnap.id; // 🔑 جلب المعرف الفريد للمستند لاستخدامه في رابط التقييم
                     
                     let badgeClass = "pending";
+                    let displayStatus = req.status;
+
                     if(req.status === "مقبول") badgeClass = "accepted";
                     if(req.status === "مرفوض") badgeClass = "rejected";
+                    if(req.status === "تم التقييم") {
+                        badgeClass = "rated";
+                        displayStatus = "تم التقييم";
+                    }
 
+                    // بناء ميكانيكية زر التقييم الذكي وتمرير الـ requestId
                     let rateBtn = "";
                     if(req.status === "مقبول") {
-                        rateBtn = `<a href="rating.html?mentor=${encodeURIComponent(req.mentorName)}" class="btn" style="background:#ffc107; color:#000; padding:8px 15px; font-size:14px; margin-top:5px; display:inline-block; text-decoration:none; border-radius:8px; font-weight:bold;">⭐ تقييم المرشدة</a>`;
+                        rateBtn = `<a href="rating.html?mentor=${encodeURIComponent(req.mentorName)}&requestId=${requestId}" class="btn" style="background:#ffc107; color:#000; padding:8px 15px; font-size:14px; margin-top:5px; display:inline-block; text-decoration:none; border-radius:8px; font-weight:bold;">⭐ تقييم المرشدة</a>`;
+                    } else if(req.status === "تم التقييم") {
+                        // زر رمادي معطل يشير إلى اكتمال عملية التقييم بنجاح
+                        rateBtn = `<a href="#" class="btn" style="background:#e0e0e0; color:#757575; padding:8px 15px; font-size:14px; margin-top:5px; display:inline-block; text-decoration:none; border-radius:8px; font-weight:bold; pointer-events: none; cursor: default;">✓ تم التقييم</a>`;
                     }
 
                     container.innerHTML += `
@@ -168,7 +180,7 @@
                                 <p><strong>الخدمة:</strong> ${req.serviceType} | <strong>الوقت:</strong> ${req.waitTime}</p>
                             </div>
                             <div class="req-status">
-                                <div class="badge ${badgeClass}">${req.status}</div>
+                                <div class="badge ${badgeClass}">${displayStatus}</div>
                                 <br>
                                 ${rateBtn}
                             </div>
