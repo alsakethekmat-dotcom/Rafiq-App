@@ -68,6 +68,7 @@
         .badge.pending { background: #fff3cd; color: #856404; }
         .badge.accepted { background: #d4edda; color: #155724; }
         .badge.rejected { background: #f8d7da; color: #721c24; }
+        .badge.rated { background: #e2f0fd; color: #1a73e8; } /* تنسيق مخصص لحالة التقييم في جدول الإدارة */
         
         @media(max-width: 768px) {
             .admin-table { display: block; overflow-x: auto; }
@@ -92,7 +93,7 @@
                     <div class="number" id="totalRequests">0</div>
                 </div>
                 <div class="stat-card" style="border-bottom-color: #18b38d;">
-                    <h3>الطلبات المقبولة (النشطة)</h3>
+                    <h3>الطلبات المقبولة والنشطة</h3>
                     <div class="number" id="activeRequests">0</div>
                 </div>
                 <div class="stat-card" style="border-bottom-color: #ffc107;">
@@ -167,7 +168,7 @@
                 }
             } else {
                 // مجهول الهوية يحاول التسلل لصفحة الإدارة المباشرة
-                window.location.href = "login.html";
+                window.location.href = "index.html"; // التوجيه للصفحة الرئيسية ليقوم بتسجيل الدخول
             }
         });
 
@@ -198,11 +199,14 @@
                     const req = docSnap.data();
                     
                     let badgeClass = "pending";
-                    if(req.status === "مقبول") {
-                        badgeClass = "accepted";
+                    // 🌟 احتساب الطلبات المقبولة والتي تم تقييمها كطلبات نشطة وناجحة في النظام
+                    if(req.status === "مقبول" || req.status === "تم التقييم") {
                         activeCount++;
                     }
+                    
+                    if(req.status === "مقبول") badgeClass = "accepted";
                     if(req.status === "مرفوض") badgeClass = "rejected";
+                    if(req.status === "تم التقييم") badgeClass = "rated";
 
                     requestsBody.innerHTML += `
                         <tr>
