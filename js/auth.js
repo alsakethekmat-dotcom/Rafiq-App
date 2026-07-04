@@ -145,4 +145,36 @@ export async function loginUser(expectedRole) {
         spinner.style.display = "none";
         submitBtn.disabled = false;
     }
+    import { auth, db } from './firebase.js';
+import { GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+const provider = new GoogleAuthProvider();
+
+export async function loginWithGoogle(role) {
+    try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        
+        // التحقق مما إذا كان المستخدم مسجلاً في Firestore
+        const userRef = doc(db, "users", user.uid);
+        const snap = await getDoc(userRef);
+        
+        if (!snap.exists()) {
+            // إذا كان مستخدماً جديداً، نقوم بإنشاء سجل له في Firestore تلقائياً
+            await setDoc(userRef, {
+                name: user.displayName,
+                email: user.email,
+                role: role,
+                createdAt: new Date()
+            });
+        }
+        
+        // التوجيه بناءً على الدور
+        window.location.href = (role === 'parent') ? "parent.html" : "mentor.html";
+        
+    } catch (error) {
+        alert("خطأ في تسجيل الدخول: " + error.message);
+    }
+}
 }
