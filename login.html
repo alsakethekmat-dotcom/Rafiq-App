@@ -61,41 +61,44 @@
         const title = document.getElementById("pageTitle");
         const registerLink = document.getElementById("registerLink");
 
-        // جلب الدور من الرابط (parent أو mentor)
         const urlParams = new URLSearchParams(window.location.search);
         const role = urlParams.get('role') || 'parent'; 
         
         if(role === "parent"){
             title.innerHTML = "دخول أولياء الأمور";
-            registerLink.href = `register.html?role=${role}`;
+            registerLink.href = `register.html?role=parent`;
         } else if(role === "mentor"){
             title.innerHTML = "دخول المرشدات";
-            registerLink.href = `register.html?role=${role}`;
+            registerLink.href = `register.html?role=mentor`;
+        } else if(role === "admin"){
+            title.innerHTML = "دخول الإدارة";
+            registerLink.style.display = "none"; // المديرة لا تنشئ حساباً من الرابط
         }
 
-        // 🛡️ حماية المسار: فحص ما إذا كان المستخدم مسجلاً بالفعل لتجنب تكرار الدخول
+        // 🛡️ فحص الأمان وتوجيه المستخدم بناءً على الدور (Role)
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 try {
                     const userDoc = await getDoc(doc(db, "users", user.uid));
                     if (userDoc.exists()) {
                         const currentRole = userDoc.data().role;
-                        // توجيهه فوراً للوحة التحكم المناسبة له دون عرض الفورم
-                        if (currentRole === "mentor") {
+                        
+                        // التوجيه الذكي للمكان الصحيح
+                        if (currentRole === "admin") {
+                            window.location.href = "admin.html";
+                        } else if (currentRole === "mentor") {
                             window.location.href = "mentor.html";
                         } else {
                             window.location.href = "parent.html";
                         }
                     } else {
-                        // الحساب موثق بـ Auth ولكن ملفه محذوف من السجلات
                         showLoginForm();
                     }
                 } catch (error) {
-                    console.error("حدث خطأ أثناء فحص الصلاحيات المسبقة:", error);
+                    console.error("خطأ فحص الصلاحيات:", error);
                     showLoginForm();
                 }
             } else {
-                // لا توجد جلسة نشطة، أظهر واجهة تسجيل الدخول بأمان
                 showLoginForm();
             }
         });
@@ -105,13 +108,11 @@
             loginCard.style.display = "block";
         }
 
-        // معالجة الدخول التقليدي
         document.getElementById("loginForm").addEventListener("submit", function(e){
             e.preventDefault();
             loginUser(role);
         });
 
-        // معالجة الدخول بجوجل
         document.getElementById("googleLoginBtn").addEventListener("click", function(){
             loginWithGoogle(role);
         });
