@@ -6,7 +6,6 @@
     <title>تطبيق رفيق - إدارة الانتظار المدرسي</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        /* تنسيقات مخصصة لصندوق الترحيب التفاعلي بعد تسجيل الدخول */
         .user-logged-box {
             background: #f8f9fa;
             padding: 20px;
@@ -94,13 +93,10 @@
         const goToDashboardBtn = document.getElementById('goToDashboardBtn');
         const mainLogoutBtn = document.getElementById('mainLogoutBtn');
 
-        // الاستماع الفوري لحالة تسجيل الدخول
         onAuthStateChanged(auth, async (user) => {
-            // إخفاء عبارة التحميل فور اتخاذ القرار
             authLoading.style.display = "none";
 
             if (user) {
-                // هناك مستخدم مسجل مسبقاً، نقوم بجلب دوره (Role) لتوجيهه بشكل صحيح
                 try {
                     const userDocRef = doc(db, "users", user.uid);
                     const userDoc = await getDoc(userDocRef);
@@ -108,43 +104,42 @@
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
                         
-                        // كتابة اسم المستخدم داخل صندوق الترحيب
                         welcomeMessage.innerText = `👋 مرحباً بكِ مجدداً: ${userData.name || 'مستخدم رفيق'}`;
                         
-                        // فحص الدور لتحديد وجهة زر الانتقال
-                        if (userData.role === "mentor") {
+                        // منطق التوجيه الذكي المحدث
+                        if (userData.role === "admin") {
+                            goToDashboardBtn.href = "admin.html";
+                            goToDashboardBtn.innerText = "الانتقال إلى لوحة الإدارة";
+                        } else if (userData.role === "mentor") {
                             goToDashboardBtn.href = "mentor.html";
+                            goToDashboardBtn.innerText = "الانتقال إلى لوحة المرشدة";
                         } else {
                             goToDashboardBtn.href = "parent.html";
+                            goToDashboardBtn.innerText = "الانتقال إلى لوحة ولي الأمر";
                         }
 
-                        // إظهار واجهة المسجل وإخفاء واجهة الزائر
                         userView.style.display = "block";
                         guestView.style.display = "none";
                     } else {
-                        // في حال لم يتم العثور على المستند في Firestore
                         showGuestView();
                     }
                 } catch (error) {
-                    console.error("خطأ أثناء جلب صلاحيات الحساب الموثق:", error);
+                    console.error("خطأ أثناء جلب الصلاحيات:", error);
                     showGuestView();
                 }
             } else {
-                // لا يوجد أي جلسة نشطة (زائر جديد للتطبيق)
                 showGuestView();
             }
         });
 
         function showGuestView() {
-            guestView.style.display = "flex"; // تفعيل أزرار الدخول العادية
+            guestView.style.display = "flex";
             userView.style.display = "none";
         }
 
-        // تفعيل وظيفة زر تسجيل الخروج
         mainLogoutBtn.addEventListener('click', () => {
-            if (confirm("هل أنتِ متأكدة من رغبتكِ في تسجيل الخروج من تطبيق رفيق؟")) {
+            if (confirm("هل أنتِ متأكدة من تسجيل الخروج؟")) {
                 signOut(auth).then(() => {
-                    // إعادة تحميل الصفحة لتحديث المراقب تلقائياً
                     window.location.reload();
                 }).catch((error) => {
                     alert("تعذر تسجيل الخروج: " + error.message);
