@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,7 +16,7 @@
             gap: 20px;
             margin-bottom: 30px;
         }
-        .action-cards a { flex: 1; text-align: center; }
+        .action-cards a { flex: 1; text-align: center; text-decoration: none; }
         
         .section-title {
             color: #16376b;
@@ -65,13 +65,13 @@
             <img src="images/rafeeq_logo.png" alt="شعار تطبيق رفيق">
             <div>
                 <h2>رفيق</h2>
-                <p id="parentWelcome">اولياء الأمور</p> 
+                <p id="parentWelcome">أولياء الأمور</p> 
             </div>
         </a>
-        <button id="logoutBtn" class="btn" style="background:#dc3545; padding: 10px 20px; font-size: 14px;">تسجيل خروج</button>
+        <button id="logoutBtn" class="btn" style="background:#dc3545; padding: 10px 20px; font-size: 14px; border: none; cursor: pointer; color: white; font-weight: bold; border-radius: 8px;">تسجيل خروج</button>
     </header>
 
-    <div class="hero" style="align-items: flex-start;">
+    <div class="hero" id="mainContent" style="align-items: flex-start; display: none;">
         <div class="dashboard-container">
             
             <div class="action-cards">
@@ -88,6 +88,8 @@
         </div>
     </div>
 
+    <div id="securePageLoader" class="loader" style="display: block; margin: 100px auto;"></div>
+
     <script type="module">
         import { db, auth } from './js/firebase.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
@@ -95,25 +97,37 @@
 
         const container = document.getElementById('myRequestsContainer');
         const spinner = document.getElementById('loadingSpinner');
+        const securePageLoader = document.getElementById('securePageLoader');
+        const mainContent = document.getElementById('mainContent');
 
+        // 🛡️ التطبيق الصارم لحماية المسار داخل لوحة ولي الأمر
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 try {
                     const userDoc = await getDoc(doc(db, "users", user.uid));
+                    // التحقق المزدوج: يجب وجود الحساب وأن يحمل صفة ولي الأمر حصراً
                     if (userDoc.exists() && userDoc.data().role === "parent") {
                         const welcomeElem = document.getElementById('parentWelcome');
                         if (welcomeElem) {
                             welcomeElem.innerText = `مرحباً ${userDoc.data().name}`;
                         }
+                        
+                        // إنهاء تحميل الأمان وعرض عناصر التحكم باللوحة
+                        securePageLoader.style.display = "none";
+                        mainContent.style.display = "flex";
+                        
+                        // بدء تشغيل جلب طلبات الأبناء النشطة
                         listenToMyRequests(user.uid);
                     } else {
-                        window.location.href = "login.html?role=parent";
+                        // الحساب المسجل ليس ولي أمر (قد يكون مرشدة تحاول الدخول بطريق الخطأ)
+                        window.location.href = "index.html";
                     }
                 } catch (err) {
-                    console.error("خطأ في جلب بيانات المستخدم:", err);
-                    if (spinner) spinner.style.display = "none";
+                    console.error("خطأ في التحقق البرمجي للأمان الإداري:", err);
+                    window.location.href = "index.html";
                 }
             } else {
+                // زائر مجهول الهوية يحاول الوصول المباشر، يتم طرده لصفحة الدخول المخصصة لولي الأمر
                 window.location.href = "login.html?role=parent";
             }
         });
@@ -162,17 +176,21 @@
                     `;
                 });
             }, (error) => {
-                console.error("خطأ فايربيس في جلب الطلبات:", error);
+                console.error("خطأ فايربيس في جلب الطلبات الحية:", error);
                 if (spinner) spinner.style.display = "none";
-                container.innerHTML = `
-                    <p style="text-align: center; color: #dc3545;">
-                        حدث خطأ أثناء تحميل الطلبات. إذا كنت تشغل التطبيق للمرة الأولى، يرجى الضغط على الرابط في الـ Console لإنشاء الفهرس المركّب (Composite Index).
-                    </p>`;
+                container.innerHTML = `<p style="text-align: center; color: #dc3545;">حدث خطأ أثناء تحميل الطلبات المستمرة.</p>`;
             });
         }
 
+        // تحسين ميكانيكية عمل زر تسجيل الخروج مع التثبيت الآمن
         document.getElementById('logoutBtn').addEventListener('click', () => {
-            signOut(auth).then(() => window.location.href = "index.html");
+            if(confirm("هل أنت متأكد من رغبتك في تسجيل الخروج من حسابك؟")) {
+                signOut(auth).then(() => {
+                    window.location.href = "index.html";
+                }).catch((error) => {
+                    alert("فشل تسجيل الخروج، يرجى المحاولة لاحقاً.");
+                });
+            }
         });
     </script>
 </body>
