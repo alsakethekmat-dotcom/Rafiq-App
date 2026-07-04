@@ -60,19 +60,32 @@
         .btn-accept { background: #18b38d; }
         .btn-reject { background: #dc3545; }
         
-        /* التقييمات */
-        .rating-item { font-size: 20px; color: #ffc107; padding: 10px 0; border-bottom: 1px solid #eee; }
+        /* التقييمات والآراء */
+        .rating-item { 
+            padding: 12px 0; 
+            border-bottom: 1px solid #eef2f7; 
+        }
+        .rating-stars {
+            font-size: 20px; 
+            color: #ffc107; 
+        }
+        .rating-comment {
+            font-size: 15px;
+            color: #555;
+            margin: 5px 0 0 0;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
     <header>
         <a href="index.html" class="logo" style="text-decoration: none;">
-    <img src="images/rafeeq_logo.png" alt="شعار تطبيق رفيق">
-    <div>
-        <h2>رفيق</h2>
-        <p>وقت آمن ومفيد</p>
-    </div>
-</a>
+            <img src="images/rafeeq_logo.png" alt="شعار تطبيق رفيق">
+            <div>
+                <h2>رفيق</h2>
+                <p>وقت آمن ومفيد</p>
+            </div>
+        </a>
         <button id="logoutBtn" class="btn" style="background:#dc3545; padding: 10px 20px; font-size: 14px;">خروج</button>
     </header>
 
@@ -80,6 +93,7 @@
         
         <div class="dashboard-section">
             <div class="status-toggle">
+                <span id="mentorWelcome" style="margin-left: 15px; font-weight: bold; color: #16376b;">مرحباً مرشدة رفيق</span>
                 حالتي: <span id="statusText" style="color: #18b38d;">🟢 متاحة</span>
                 <button id="toggleStatusBtn" class="toggle-btn active">تغيير</button>
             </div>
@@ -100,11 +114,9 @@
         </div>
 
         <div class="dashboard-section">
-            <h3 class="section-title">التقييمات</h3>
+            <h3 class="section-title">التقييمات والآراء الحية</h3>
             <div id="ratingsContainer">
-                <div class="rating-item">⭐⭐⭐⭐⭐</div>
-                <div class="rating-item">⭐⭐⭐⭐</div>
-                <div class="rating-item">⭐⭐⭐⭐⭐</div>
+                <p style="text-align: center; color: #888;">جاري تحميل التقييمات...</p>
             </div>
         </div>
     </div>
@@ -132,6 +144,9 @@
 
                     // الاستماع للطلبات
                     listenToRequests(data.name);
+
+                    // الاستماع للتقييمات والآراء الحية
+                    listenToReviews(data.name);
                 }
             } else {
                 window.location.href = "login.html?role=mentor";
@@ -200,6 +215,44 @@
 
                 newRequestsDiv.innerHTML = newHtml || `<p style="text-align: center; color: #888;">لا توجد طلبات جديدة.</p>`;
                 acceptedRequestsDiv.innerHTML = acceptedHtml || `<p style="text-align: center; color: #888;">لا توجد جلسات نشطة حالياً.</p>`;
+            });
+        }
+
+        // دالة جديدة للاستماع للتقييمات والآراء ديناميكياً
+        function listenToReviews(mentorName) {
+            const qReviews = query(collection(db, "reviews"), where("mentorName", "==", mentorName), orderBy("createdAt", "desc"));
+            
+            onSnapshot(qReviews, (snapshot) => {
+                const ratingsContainer = document.getElementById('ratingsContainer');
+                let reviewsHtml = "";
+
+                if (snapshot.empty) {
+                    ratingsContainer.innerHTML = `<p style="text-align: center; color: #888;">لا توجد تقييمات أو آراء مضافة بعد.</p>`;
+                    return;
+                }
+
+                snapshot.forEach((docSnap) => {
+                    const reviewData = docSnap.data();
+                    
+                    // تحويل الرقم (مثل 4 أو 5) إلى نجوم نصية تكرارية
+                    const numericRating = reviewData.rating || 5; 
+                    const stars = "⭐".repeat(numericRating);
+                    
+                    // التحقق من وجود تعليق أو رأي مكتوب
+                    const commentText = reviewData.comment ? `<p class="rating-comment">💬 "${reviewData.comment}"</p>` : "";
+
+                    reviewsHtml += `
+                        <div class="rating-item">
+                            <div class="rating-stars">${stars}</div>
+                            ${commentText}
+                        </div>
+                    `;
+                });
+
+                ratingsContainer.innerHTML = reviewsHtml;
+            }, (error) => {
+                console.error("خطأ أثناء جلب التقييمات:", error);
+                document.getElementById('ratingsContainer').innerHTML = `<p style="text-align: center; color: #dc3545;">فشل تحميل التقييمات.</p>`;
             });
         }
 
