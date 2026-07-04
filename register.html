@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إنشاء حساب - تطبيق رفيق</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <img src="images/rafeeq_logo.png" alt="شعار رفيق">
+            <div>
+                <h2>رفيق</h2>
+                <p>إدارة الانتظار المدرسي</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="hero">
+        <div class="hero-card">
+            <h1 id="pageTitle">إنشاء حساب</h1>
+            <p id="pageDescription"></p>
+            
+            <form id="registerForm">
+                <div class="input-group">
+                    <label>الاسم الكامل</label>
+                    <input type="text" id="name" placeholder="الاسم الكامل" required>
+                </div>
+
+                <div class="input-group">
+                    <label>البريد الإلكتروني</label>
+                    <input type="email" id="email" placeholder="example@email.com" required>
+                </div>
+                
+                <div class="input-group">
+                    <label>كلمة المرور</label>
+                    <input type="password" id="password" placeholder="********" minlength="6" required>
+                </div>
+
+                <div class="input-group">
+                    <label>تأكيد كلمة المرور</label>
+                    <input type="password" id="confirmPassword" placeholder="********" minlength="6" required>
+                </div>
+
+                <div class="loader" id="loadingSpinner"></div>
+                <p class="message" id="message"></p>
+
+                <button type="submit" class="btn blue full-btn">إنشاء الحساب</button>
+            </form>
+
+            <hr class="divider">
+            <p class="register-text">لديك حساب مسبقاً؟</p>
+            <a href="login.html" id="loginLink" class="btn green full-btn">تسجيل الدخول</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { registerUser } from './js/auth.js';
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const role = urlParams.get('role') || 'parent';
+        
+        const title = document.getElementById("pageTitle");
+        const description = document.getElementById("pageDescription");
+        const loginLink = document.getElementById("loginLink");
+        
+        loginLink.href = `login.html?role=${role}`;
+        
+        if(role === "parent"){
+            title.innerHTML = "إنشاء حساب ولي أمر";
+            description.innerHTML = "أنشئ حسابك للوصول إلى خدمات رفيق ومتابعة طلبات أبنائك.";
+        } else {
+            title.innerHTML = "إنشاء حساب مرشدة";
+            description.innerHTML = "أنشئي حسابك لاستقبال الطلبات وإدارة جلسات الانتظار.";
+        }
+
+        document.getElementById("registerForm").addEventListener("submit", function(e){
+            e.preventDefault();
+            registerUser(role);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقييم الخدمة - تطبيق رفيق</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .rating-container {
+            direction: ltr; /* لعكس اتجاه النجوم برمجياً */
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .star {
+            font-size: 40px;
+            color: #ddd;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .star:hover,
+        .star.active {
+            color: #ffc107; /* اللون الذهبي */
+        }
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            outline: none;
+            resize: none;
+            font-family: inherit;
+        }
+        textarea:focus { border-color: #18b38d; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h2>تقييم التجربة</h2>
+        </div>
+        <a href="parent.html" class="btn" style="background:#6c757d; padding: 10px 20px; font-size: 14px;">إلغاء</a>
+    </header>
+
+    <div class="hero">
+        <div class="hero-card">
+            <h1 id="mentorNameTitle" style="color:#16376b;">تقييم المرشدة</h1>
+            <p>رأيك يهمنا ويساعد طالباتنا المرشدات على التطور وتقديم خدمة أفضل.</p>
+            
+            <form id="ratingForm">
+                <div class="rating-container" id="starsContainer">
+                    <span class="star" data-value="5">★</span>
+                    <span class="star" data-value="4">★</span>
+                    <span class="star" data-value="3">★</span>
+                    <span class="star" data-value="2">★</span>
+                    <span class="star" data-value="1">★</span>
+                </div>
+                
+                <input type="hidden" id="ratingValue" required>
+
+                <div class="input-group" style="text-align: right;">
+                    <label>اكتب رأيك أو كلمة شكر (اختياري)</label>
+                    <textarea id="reviewText" placeholder="المرشدة كانت ممتازة ومتعاونة جداً..."></textarea>
+                </div>
+
+                <div class="loader" id="loadingSpinner"></div>
+                <p class="message" id="message"></p>
+
+                <button type="submit" class="btn blue full-btn">إرسال التقييم</button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, auth } from './js/firebase.js';
+        import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+        // جلب اسم المرشدة من الرابط
+        const urlParams = new URLSearchParams(window.location.search);
+        const mentorName = urlParams.get('mentor');
+        
+        if (mentorName) {
+            document.getElementById('mentorNameTitle').innerText = `تقييم المرشدة: ${mentorName}`;
+        } else {
+            document.getElementById('mentorNameTitle').innerText = `تقييم المرشدة`;
+        }
+
+        // برمجة تفاعل النجوم
+        const stars = document.querySelectorAll('.star');
+        const ratingInput = document.getElementById('ratingValue');
+
+        stars.forEach(star => {
+            star.addEventListener('click', function() {
+                const value = this.getAttribute('data-value');
+                ratingInput.value = value;
+                
+                // إزالة التفعيل عن الجميع
+                stars.forEach(s => s.classList.remove('active'));
+                
+                // تفعيل النجوم المختارة وما دونها (بسبب اتجاه ltr، الأقل هو الأكبر بالقيمة)
+                this.classList.add('active');
+                let prev = this.nextElementSibling;
+                while(prev) {
+                    prev.classList.add('active');
+                    prev = prev.nextElementSibling;
+                }
+            });
+        });
+
+        // إرسال التقييم
+        document.getElementById('ratingForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if(!ratingInput.value) {
+                alert("الرجاء اختيار عدد النجوم لتقييم المرشدة.");
+                return;
+            }
+
+            const message = document.getElementById("message");
+            const spinner = document.getElementById("loadingSpinner");
+            const submitBtn = document.querySelector("button[type='submit']");
+
+            message.innerHTML = "";
+            spinner.style.display = "block";
+            submitBtn.disabled = true;
+
+            try {
+                const user = auth.currentUser;
+                const parentId = user ? user.uid : "مجهول"; 
+
+                await addDoc(collection(db, "ratings"), {
+                    mentorName: mentorName || "غير محدد",
+                    parentId: parentId,
+                    rating: parseInt(ratingInput.value),
+                    reviewText: document.getElementById('reviewText').value,
+                    createdAt: serverTimestamp()
+                });
+
+                message.style.color = "green";
+                message.innerHTML = "شكراً لتقييمك! جاري العودة للوحة التحكم...";
+                
+                setTimeout(() => {
+                    window.location.href = "parent.html";
+                }, 2000);
+
+            } catch (error) {
+                message.style.color = "red";
+                message.innerHTML = "حدث خطأ أثناء الإرسال: " + error.message;
+                spinner.style.display = "none";
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

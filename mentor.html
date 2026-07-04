@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة المرشدة - تطبيق رفيق</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .dashboard-section {
+            background: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            width: 100%;
+        }
+        .section-title {
+            color: #16376b;
+            border-bottom: 2px solid #eef2f7;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            font-size: 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .toggle-btn {
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: 0.3s;
+        }
+        .toggle-btn.active { background: #18b38d; }
+        .toggle-btn.inactive { background: #dc3545; }
+        
+        /* تنسيق القوائم */
+        .request-item {
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .request-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 18px; }
+        .request-body { color: #666; display: flex; justify-content: space-between; align-items: center;}
+        .actions { display: flex; gap: 10px; margin-top: 10px; }
+        .actions button { flex: 1; padding: 10px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; color: white;}
+        .btn-accept { background: #18b38d; }
+        .btn-reject { background: #dc3545; }
+        
+        /* التقييمات */
+        .rating-item { font-size: 20px; color: #ffc107; padding: 10px 0; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <img src="images/rafeeq_logo.png" alt="شعار رفيق">
+            <h2 id="mentorWelcome">مرحباً...</h2>
+        </div>
+        <button id="logoutBtn" class="btn" style="background:#dc3545; padding: 10px 20px; font-size: 14px;">خروج</button>
+    </header>
+
+    <div class="hero" style="align-items: flex-start; flex-direction: column; max-width: 800px; margin: 0 auto; padding: 20px;">
+        
+        <div class="dashboard-section">
+            <div class="status-toggle">
+                حالتي: <span id="statusText" style="color: #18b38d;">🟢 متاحة</span>
+                <button id="toggleStatusBtn" class="toggle-btn active">تغيير</button>
+            </div>
+        </div>
+
+        <div class="dashboard-section">
+            <h3 class="section-title">الطلبات الجديدة</h3>
+            <div id="newRequests">
+                <p style="text-align: center; color: #888;">لا توجد طلبات جديدة.</p>
+            </div>
+        </div>
+
+        <div class="dashboard-section">
+            <h3 class="section-title">الطلبات المقبولة (العمل الحالي)</h3>
+            <div id="acceptedRequests">
+                <p style="text-align: center; color: #888;">لا توجد جلسات نشطة حالياً.</p>
+            </div>
+        </div>
+
+        <div class="dashboard-section">
+            <h3 class="section-title">التقييمات</h3>
+            <div id="ratingsContainer">
+                <div class="rating-item">⭐⭐⭐⭐⭐</div>
+                <div class="rating-item">⭐⭐⭐⭐</div>
+                <div class="rating-item">⭐⭐⭐⭐⭐</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, auth } from './js/firebase.js';
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+        import { doc, getDoc, updateDoc, collection, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+        let currentUserDocRef = null;
+        let isMentorAvailable = true;
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUserDocRef = doc(db, "users", user.uid);
+                const userDoc = await getDoc(currentUserDocRef);
+                
+                if (userDoc.exists() && userDoc.data().role === "mentor") {
+                    const data = userDoc.data();
+                    document.getElementById('mentorWelcome').innerText = `مرحباً ${data.name}`;
+                    
+                    // إعداد الحالة
+                    isMentorAvailable = data.isAvailable !== false;
+                    updateStatusUI();
+
+                    // الاستماع للطلبات
+                    listenToRequests(data.name);
+                }
+            } else {
+                window.location.href = "login.html?role=mentor";
+            }
+        });
+
+        // تغيير حالة التوفر
+        document.getElementById('toggleStatusBtn').addEventListener('click', async () => {
+            if(!currentUserDocRef) return;
+            isMentorAvailable = !isMentorAvailable;
+            updateStatusUI();
+            await updateDoc(currentUserDocRef, { isAvailable: isMentorAvailable });
+        });
+
+        function updateStatusUI() {
+            const statusText = document.getElementById('statusText');
+            const toggleBtn = document.getElementById('toggleStatusBtn');
+            if(isMentorAvailable) {
+                statusText.innerHTML = "🟢 متاحة";
+                statusText.style.color = "#18b38d";
+                toggleBtn.className = "toggle-btn active";
+            } else {
+                statusText.innerHTML = "🔴 غير متاحة";
+                statusText.style.color = "#dc3545";
+                toggleBtn.className = "toggle-btn inactive";
+            }
+        }
+
+        function listenToRequests(mentorName) {
+            const q = query(collection(db, "requests"), where("mentorName", "==", mentorName), orderBy("createdAt", "desc"));
+            
+            onSnapshot(q, (snapshot) => {
+                const newRequestsDiv = document.getElementById('newRequests');
+                const acceptedRequestsDiv = document.getElementById('acceptedRequests');
+                
+                let newHtml = "";
+                let acceptedHtml = "";
+
+                snapshot.forEach((docSnap) => {
+                    const req = docSnap.data();
+                    const reqId = docSnap.id;
+
+                    if (req.status === "قيد الانتظار") {
+                        newHtml += `
+                            <div class="request-item">
+                                <div class="request-header"><span>${req.studentName}</span> <span>الصف: ${req.grade}</span></div>
+                                <div class="request-body">الخدمة: ${req.serviceType}</div>
+                                <div class="actions">
+                                    <button class="btn-accept" onclick="updateReq('${reqId}', 'مقبول')">قبول</button>
+                                    <button class="btn-reject" onclick="updateReq('${reqId}', 'مرفوض')">رفض</button>
+                                </div>
+                            </div>
+                        `;
+                    } else if (req.status === "مقبول") {
+                        acceptedHtml += `
+                            <div class="request-item" style="border-right: 5px solid #18b38d;">
+                                <div class="request-header"><span>${req.studentName}</span> <span>الصف: ${req.grade}</span></div>
+                                <div class="request-body">
+                                    <span>الفترة: ${req.waitTime}</span>
+                                    <span>الخدمة: ${req.serviceType}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+
+                newRequestsDiv.innerHTML = newHtml || `<p style="text-align: center; color: #888;">لا توجد طلبات جديدة.</p>`;
+                acceptedRequestsDiv.innerHTML = acceptedHtml || `<p style="text-align: center; color: #888;">لا توجد جلسات نشطة حالياً.</p>`;
+            });
+        }
+
+        // جعل دالة التحديث متاحة للـ onClick في HTML
+        window.updateReq = async function(requestId, newStatus) {
+            await updateDoc(doc(db, "requests", requestId), { status: newStatus });
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            signOut(auth).then(() => window.location.href = "index.html");
+        });
+    </script>
+</body>
+</html>

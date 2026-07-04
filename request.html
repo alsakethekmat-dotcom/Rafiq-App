@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طلب جلسة - رفيق</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* تنسيق خاص لأزرار اختيار الخدمة الـ 3 لتكون أنيقة كما هو مطلوب */
+        .service-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .service-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            background: white;
+            color: #666;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .service-btn.active {
+            border-color: #18b38d;
+            background: #18b38d;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h2>طلب جلسة انتظار</h2>
+        </div>
+        <a href="parent.html" class="btn" style="background:#6c757d; padding: 10px 20px; font-size: 14px;">عودة</a>
+    </header>
+
+    <div class="hero">
+        <div class="hero-card">
+            <form id="requestForm">
+                <div class="input-group">
+                    <label>اسم الطالب / الطالبة</label>
+                    <input type="text" id="studentName" required placeholder="أدخل اسم الطالب رباعياً">
+                </div>
+
+                <div class="input-group">
+                    <label>الصف الدراسي</label>
+                    <select id="grade" required>
+                        <option value="">اختر الصف</option>
+                        <option value="الأول">الأول</option>
+                        <option value="الثاني">الثاني</option>
+                        <option value="الثالث">الثالث</option>
+                        <option value="الرابع">الرابع</option>
+                        <option value="الخامس">الخامس</option>
+                        <option value="السادس">السادس</option>
+                        <option value="السابع">السابع</option>
+                        <option value="الثامن">الثامن</option>
+                        <option value="التاسع">التاسع</option>
+                        <option value="العاشر">العاشر</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>فترة الانتظار</label>
+                    <select id="waitTime" required>
+                        <option value="">اختر الفترة</option>
+                        <option value="12:30 - 1:15">من 12:30 لغاية 1:15</option>
+                        <option value="1:15 - 2:00">من 1:15 لغاية 2:00</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>نوع الخدمة المطلوبة</label>
+                    <div class="service-options">
+                        <button type="button" class="service-btn" data-value="حل واجبات">حل واجبات</button>
+                        <button type="button" class="service-btn" data-value="لعب موجه">لعب موجه</button>
+                        <button type="button" class="service-btn" data-value="متابعة دراسية">متابعة دراسية</button>
+                    </div>
+                    <input type="hidden" id="serviceType" required>
+                </div>
+
+                <div class="input-group">
+                    <label>اسم مقدمة الخدمة (المرشدة)</label>
+                    <select id="mentorName" required>
+                        <option value="">اختر المرشدة</option>
+                        <option value="آلاء">آلاء - الصف العاشر</option>
+                        <option value="جنى">جنى - الصف العاشر</option>
+                        <option value="ميار">ميار - الصف العاشر</option>
+                    </select>
+                </div>
+
+                <div class="loader" id="loadingSpinner"></div>
+                <p class="message" id="message"></p>
+
+                <button type="submit" class="btn blue full-btn">إرسال الطلب</button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, auth } from './js/firebase.js';
+        import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+        // برمجة الأزرار الـ 3 الأنيقة لنوع الخدمة
+        const serviceBtns = document.querySelectorAll('.service-btn');
+        const serviceInput = document.getElementById('serviceType');
+
+        serviceBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // إزالة التفعيل عن كل الأزرار
+                serviceBtns.forEach(b => b.classList.remove('active'));
+                // تفعيل الزر المضغوط
+                this.classList.add('active');
+                // حفظ القيمة في الحقل المخفي
+                serviceInput.value = this.getAttribute('data-value');
+            });
+        });
+
+        // إرسال الطلب لقاعدة البيانات
+        document.getElementById('requestForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if(!serviceInput.value) {
+                alert("الرجاء اختيار نوع الخدمة (حل واجبات، لعب موجه، متابعة دراسية) ");
+                return;
+            }
+
+            const message = document.getElementById("message");
+            const spinner = document.getElementById("loadingSpinner");
+            const submitBtn = document.querySelector("button[type='submit']");
+
+            message.innerHTML = "";
+            spinner.style.display = "block";
+            submitBtn.disabled = true;
+
+            try {
+                // التأكد من وجود مستخدم مسجل دخول
+                const user = auth.currentUser;
+                const parentId = user ? user.uid : "ضيف"; 
+
+                await addDoc(collection(db, "requests"), {
+                    parentId: parentId,
+                    studentName: document.getElementById('studentName').value,
+                    grade: document.getElementById('grade').value,
+                    waitTime: document.getElementById('waitTime').value,
+                    serviceType: serviceInput.value,
+                    mentorName: document.getElementById('mentorName').value,
+                    status: "قيد الانتظار", // سيتم تغييرها للموافقة أو الرفض من قبل المرشدة
+                    createdAt: serverTimestamp()
+                });
+
+                message.style.color = "green";
+                message.innerHTML = "تم إرسال الطلب بنجاح إلى المرشدة! جاري العودة...";
+                
+                setTimeout(() => {
+                    window.location.href = "parent.html";
+                }, 2000);
+
+            } catch (error) {
+                message.style.color = "red";
+                message.innerHTML = "حدث خطأ أثناء إرسال الطلب: " + error.message;
+                spinner.style.display = "none";
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

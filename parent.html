@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة ولي الأمر - تطبيق رفيق</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .dashboard-container {
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .action-cards {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .action-cards a { flex: 1; text-align: center; }
+        
+        .section-title {
+            color: #16376b;
+            border-bottom: 2px solid #eef2f7;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        .request-item {
+            background: white;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .req-info h4 { color: #16376b; margin-bottom: 5px; font-size: 18px;}
+        .req-info p { color: #666; font-size: 15px; margin-bottom: 3px;}
+        .req-status { text-align: left; }
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .badge.pending { background: #fff3cd; color: #856404; }
+        .badge.accepted { background: #d4edda; color: #155724; }
+        .badge.rejected { background: #f8d7da; color: #721c24; }
+        
+        @media(max-width: 768px) {
+            .action-cards { flex-direction: column; }
+            .request-item { flex-direction: column; align-items: flex-start; gap: 15px; }
+            .req-status { text-align: right; width: 100%; }
+            .req-status .btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <img src="images/rafeeq_logo.png" alt="شعار رفيق">
+            <h2 id="parentWelcome">مرحباً...</h2>
+        </div>
+        <button id="logoutBtn" class="btn" style="background:#dc3545; padding: 10px 20px; font-size: 14px;">تسجيل خروج</button>
+    </header>
+
+    <div class="hero" style="align-items: flex-start;">
+        <div class="dashboard-container">
+            
+            <div class="action-cards">
+                <a href="mentors.html" class="btn green">👩 استعراض المرشدات المتاحات</a>
+                <a href="request.html" class="btn blue">📝 طلب جلسة انتظار جديدة</a>
+            </div>
+
+            <div style="background: white; border-radius: 20px; padding: 30px; box-shadow: 0 5px 20px rgba(0,0,0,0.05);">
+                <h3 class="section-title">طلباتي السابقة والحالية</h3>
+                <div class="loader" id="loadingSpinner" style="display: block;"></div>
+                <div id="myRequestsContainer">
+                    </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, auth } from './js/firebase.js';
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+        import { doc, getDoc, collection, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+        const container = document.getElementById('myRequestsContainer');
+        const spinner = document.getElementById('loadingSpinner');
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // جلب اسم ولي الأمر
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists() && userDoc.data().role === "parent") {
+                    document.getElementById('parentWelcome').innerText = `مرحباً ${userDoc.data().name}`;
+                    listenToMyRequests(user.uid);
+                } else {
+                    window.location.href = "login.html?role=parent";
+                }
+            } else {
+                window.location.href = "login.html?role=parent";
+            }
+        });
+
+        function listenToMyRequests(parentId) {
+            const q = query(collection(db, "requests"), where("parentId", "==", parentId), orderBy("createdAt", "desc"));
+            
+            onSnapshot(q, (snapshot) => {
+                spinner.style.display = "none";
+                container.innerHTML = "";
+
+                if (snapshot.empty) {
+                    container.innerHTML = `<p style="text-align: center; color: #888;">لم تقم بإرسال أي طلبات حتى الآن.</p>`;
+                    return;
+                }
+
+                snapshot.forEach((docSnap) => {
+                    const req = docSnap.data();
+                    
+                    let badgeClass = "pending";
+                    if(req.status === "مقبول") badgeClass = "accepted";
+                    if(req.status === "مرفوض") badgeClass = "rejected";
+
+                    // إظهار زر التقييم إذا كان الطلب مقبولاً
+                    let rateBtn = "";
+                    if(req.status === "مقبول") {
+                        rateBtn = `<a href="rating.html?mentor=${encodeURIComponent(req.mentorName)}" class="btn" style="background:#ffc107; color:#000; padding:8px 15px; font-size:14px; margin-top:5px; display:inline-block;">⭐ تقييم المرشدة</a>`;
+                    }
+
+                    container.innerHTML += `
+                        <div class="request-item">
+                            <div class="req-info">
+                                <h4>الطالب/ة: ${req.studentName} (الصف ${req.grade})</h4>
+                                <p><strong>المرشدة:</strong> ${req.mentorName}</p>
+                                <p><strong>الخدمة:</strong> ${req.serviceType} | <strong>الوقت:</strong> ${req.waitTime}</p>
+                            </div>
+                            <div class="req-status">
+                                <div class="badge ${badgeClass}">${req.status}</div>
+                                <br>
+                                ${rateBtn}
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            signOut(auth).then(() => window.location.href = "index.html");
+        });
+    </script>
+</body>
+</html>
