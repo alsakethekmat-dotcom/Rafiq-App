@@ -100,6 +100,40 @@
     <script type="module">
         import { db, auth } from './js/firebase.js';
         import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+        import { db } from './js/firebase.js'; // تأكدي من مسار ملف الفايربيس
+import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+async function loadMentorsIntoDropdown() {
+    const mentorSelect = document.getElementById('mentorSelect');
+    
+    try {
+        // استعلام لجلب المستخدمين الذين لديهم صلاحية مرشدة
+        const q = query(collection(db, "users"), where("role", "==", "mentor"));
+        const querySnapshot = await getDocs(q);
+        
+        mentorSelect.innerHTML = '<option value="" disabled selected>اختر المرشدة</option>';
+        
+        if (querySnapshot.empty) {
+            mentorSelect.innerHTML = '<option value="" disabled>لا توجد مرشدات متاحات حالياً</option>';
+            return;
+        }
+
+        // إضافة كل مرشدة موجودة في قاعدة البيانات إلى القائمة
+        querySnapshot.forEach((doc) => {
+            const mentorData = doc.data();
+            const option = document.createElement('option');
+            option.value = mentorData.name; // الاسم الذي سيتم تخزينه في الطلب
+            option.textContent = mentorData.name;
+            mentorSelect.appendChild(option);
+        });
+    } catch (error) {
+        console.error("خطأ في جلب المرشدات:", error);
+        mentorSelect.innerHTML = '<option value="" disabled>تعذر تحميل المرشدات</option>';
+    }
+}
+
+// استدعاء الدالة عند تحميل الصفحة
+window.addEventListener('DOMContentLoaded', loadMentorsIntoDropdown);
 
         // برمجة الأزرار الـ 3 الأنيقة لنوع الخدمة
         const serviceBtns = document.querySelectorAll('.service-btn');
