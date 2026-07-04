@@ -43,23 +43,34 @@
         .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; }
         .dot.green { background-color: #18b38d; }
         .dot.red { background-color: #dc3545; }
+        
+        /* تحسينات إضافية للأزرار للتأكد من تنسيقها داخل الكارد */
+        .full-btn {
+            width: 100%;
+            display: block;
+            text-align: center;
+            box-sizing: border-box;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <header>
         <a href="index.html" class="logo" style="text-decoration: none;">
-    <img src="images/rafeeq_logo.png" alt="شعار تطبيق رفيق">
-            <h2>المرشدات</h2>
-    </div>
-</a>
-            
-       
-        <a href="parent.html" class="btn" style="background:#6c757d; padding: 10px 20px; font-size: 14px;">عودة</a>
+            <img src="images/rafeeq_logo.png" alt="شعار تطبيق رفيق">
+            <div>
+                <h2>رفيق</h2>
+                <p>المرشدات المتاحات</p>
+            </div>
+        </a>
+        <a href="parent.html" class="btn" style="background:#6c757d; padding: 10px 20px; font-size: 14px; text-decoration: none;">عودة</a>
     </header>
 
-    <div class="hero" style="align-items: flex-start; flex-direction: column; max-width: 1200px; margin: 0 auto;">
+    <div class="hero" style="align-items: flex-start; flex-direction: column; max-width: 1200px; margin: 0 auto; padding: 20px;">
         <h1 style="color: #16376b;">المرشدات المتاحات</h1>
-        <p style="color: #666;">يمكنك استعراض الطالبات المرشدات واختيار الأنسب لتقديم الخدمة.</p>
+        <p style="color: #666;">يمكنك استعراض الطالبات المرشدات واختيار الأنسب لتقديم الخدمة لبناتكم.</p>
         
         <div class="loader" id="loadingSpinner" style="display: block;"></div>
         <div class="mentors-grid" id="mentorsContainer"></div>
@@ -67,63 +78,74 @@
 
     <script type="module">
         import { db } from './js/firebase.js';
-        import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+        // 💡 تم استبدال getDocs بـ onSnapshot لدعم التحديث الحي والتلقائي للبيانات
+        import { collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
         const container = document.getElementById('mentorsContainer');
         const spinner = document.getElementById('loadingSpinner');
 
-        async function loadMentors() {
+        function listenToMentors() {
             try {
                 const q = query(collection(db, "users"), where("role", "==", "mentor"));
-                const querySnapshot = await getDocs(q);
                 
-                spinner.style.display = "none";
-                container.innerHTML = "";
+                // 💡 الاستماع الحي للتغيرات في حالة توفر المرشدات
+                onSnapshot(q, (querySnapshot) => {
+                    spinner.style.display = "none";
+                    container.innerHTML = "";
 
-                if (querySnapshot.empty) {
-                    container.innerHTML = "<p>لا توجد مرشدات مسجلات حالياً.</p>";
-                    return;
-                }
+                    if (querySnapshot.empty) {
+                        container.innerHTML = "<p style='text-align: center; color: #888; width: 100%;'>لا توجد مرشدات مسجلات حالياً.</p>";
+                        return;
+                    }
 
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    // افتراض قيم ابتدائية إذا لم تكن موجودة في قاعدة البيانات بعد
-                    const grade = data.grade || "العاشر"; 
-                    const ratingStr = data.rating || "⭐⭐⭐⭐⭐ 5.0";
-                    const isAvailable = data.isAvailable !== false; // افتراضياً متاحة
-                    
-                    const statusClass = isAvailable ? "available" : "unavailable";
-                    const dotClass = isAvailable ? "green" : "red";
-                    const statusText = isAvailable ? "متاحة" : "غير متاحة";
-                    const btnHtml = isAvailable 
-                        ? `<a href="request.html?mentor=${encodeURIComponent(data.name)}" class="btn blue full-btn" style="text-align:center; padding:10px;">طلب جلسة</a>` 
-                        : `<button class="btn full-btn" style="background:#ccc; padding:10px; cursor:not-allowed;" disabled>غير متاحة حالياً</button>`;
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        
+                        // إعداد القيم الافتراضية
+                        const grade = data.grade || "العاشر"; 
+                        const ratingStr = data.rating || "⭐⭐⭐⭐⭐ 5.0";
+                        const isAvailable = data.isAvailable !== false; // إذا لم تكن القيمة محددة، نعتبرها متاحة افتراضياً
+                        
+                        const statusClass = isAvailable ? "available" : "unavailable";
+                        const dotClass = isAvailable ? "green" : "red";
+                        const statusText = isAvailable ? "متاحة" : "غير متاحة";
+                        
+                        // إنشاء أزرار الطلبات بشكل ديناميكي وحسب حالة المرشدة الحالية
+                        const btnHtml = isAvailable 
+                            ? `<a href="request.html?mentor=${encodeURIComponent(data.name)}" class="btn blue full-btn" style="padding:10px; margin-top: 5px;">طلب جلسة</a>` 
+                            : `<button class="btn full-btn" style="background:#ccc; padding:10px; cursor:not-allowed; border:none; color:white; margin-top: 5px;" disabled>غير متاحة حالياً</button>`;
 
-                    container.innerHTML += `
-                        <div class="mentor-card">
-                            <div class="mentor-header">
-                                <div>
-                                    <div class="mentor-name">👩 ${data.name}</div>
-                                    <div class="mentor-grade">الصف: ${grade}</div>
+                        container.innerHTML += `
+                            <div class="mentor-card">
+                                <div class="mentor-header">
+                                    <div>
+                                        <div class="mentor-name">👩 ${data.name}</div>
+                                        <div class="mentor-grade">الصف: ${grade}</div>
+                                    </div>
+                                    <div class="rating">${ratingStr}</div>
                                 </div>
-                                <div class="rating">${ratingStr}</div>
+                                <hr style="border:0; border-top:1px solid #eef2f7; margin:10px 0;">
+                                <div class="availability ${statusClass}">
+                                    <span class="dot ${dotClass}"></span> ${statusText}
+                                </div>
+                                ${btnHtml}
                             </div>
-                            <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
-                            <div class="availability ${statusClass}">
-                                <span class="dot ${dotClass}"></span> ${statusText}
-                            </div>
-                            ${btnHtml}
-                        </div>
-                    `;
+                        `;
+                    });
+                }, (error) => {
+                    console.error("خطأ في جلب البيانات الحية للمرشدات:", error);
+                    spinner.style.display = "none";
+                    container.innerHTML = "<p style='text-align: center; color: #dc3545; width: 100%;'>حدث خطأ أثناء جلب بيانات المرشدات.</p>";
                 });
             } catch (error) {
-                console.error("خطأ:", error);
+                console.error("خطأ عام في النظام:", error);
                 spinner.style.display = "none";
-                container.innerHTML = "<p>حدث خطأ أثناء تحميل بيانات المرشدات.</p>";
+                container.innerHTML = "<p style='text-align: center; color: #dc3545; width: 100%;'>فشل تشغيل النظام المستمع للمرشدات.</p>";
             }
         }
 
-        loadMentors();
+        // تشغيل الاستماع فور تحميل الصفحة
+        listenToMentors();
     </script>
 </body>
 </html>
