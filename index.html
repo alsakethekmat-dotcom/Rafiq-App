@@ -1,10 +1,42 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تطبيق رفيق - إدارة الانتظار المدرسي</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* تنسيقات مخصصة لصندوق الترحيب التفاعلي بعد تسجيل الدخول */
+        .user-logged-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #eef2f7;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .btn-danger {
+            background: #dc3545 !important;
+            color: white !important;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+            width: 100%;
+            transition: 0.3s;
+        }
+        .btn-danger:hover {
+            background: #bd2130 !important;
+        }
+        .loading-session {
+            color: #16376b;
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 15px;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -21,19 +53,104 @@
         <div class="hero-card">
             <img src="images/rafeeq_logo.png" alt="شعار رفيق" class="hero-logo">
             <h1>مرحباً بكم في منصة رفيق</h1>
-            <p>حل مبتكر وآمن لإدارة أوقات انتظار الطالبات لحين وصول الحافلات المدرسية، لنضمن بيئة مريحة ومفيدة للجميع[cite: 3].</p>
+            <p>حل مبتكر وآمن لإدارة أوقات انتظار الطالبات لحين وصول الحافلات المدرسية، لنضمن بيئة مريحة ومفيدة للجميع.</p>
             
-            <div class="buttons">
+            <div id="authLoading" class="loading-session">
+                جاري التحقق من حالة الحساب...
+            </div>
+
+            <div id="guestView" class="buttons" style="display: none;">
                 <a href="login.html?role=parent" class="btn blue">دخول أولياء الأمور</a>
                 <a href="login.html?role=mentor" class="btn green">دخول المرشدات</a>
             </div>
+
+            <div id="userView" class="user-logged-box" style="display: none;">
+                <h3 id="welcomeMessage" style="color: #16376b; margin-bottom: 10px;">👋 مرحباً بكِ مجدداً</h3>
+                <p style="color: #666; font-size: 14px; margin-bottom: 15px;">لديكِ جلسة نشطة حالياً في النظام.</p>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <a id="goToDashboardBtn" href="#" class="btn blue" style="text-decoration: none; text-align: center; display: block; padding: 12px;">الانتقال إلى لوحة التحكم</a>
+                    <button id="mainLogoutBtn" class="btn-danger">تسجيل الخروج من الحساب</button>
+                </div>
+            </div>
+
         </div>
     </div>
 
     <footer>
         <h3>تطبيق رفيق</h3>
-        <p>من إعداد الطالبات المتميزات: آلاء، جنى، سهام، سارة، وميار [cite: 1]</p>
-        <p>إشراف المعلمة: أماني أبو رمان - مدرسة حكمت الساكت الأساسية </p>
+        <p>من إعداد الطالبات المتميزات: آلاء، جنى، سهام، سارة، وميار</p>
+        <p>إشراف المعلمة: أماني أبو رمان - مدرسة حكمت الساكت الأساسية</p>
     </footer>
+
+    <script type="module">
+        import { db, auth } from './js/firebase.js';
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+        const authLoading = document.getElementById('authLoading');
+        const guestView = document.getElementById('guestView');
+        const userView = document.getElementById('userView');
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        const goToDashboardBtn = document.getElementById('goToDashboardBtn');
+        const mainLogoutBtn = document.getElementById('mainLogoutBtn');
+
+        // الاستماع الفوري لحالة تسجيل الدخول
+        onAuthStateChanged(auth, async (user) => {
+            // إخفاء عبارة التحميل فور اتخاذ القرار
+            authLoading.style.display = "none";
+
+            if (user) {
+                // هناك مستخدم مسجل مسبقاً، نقوم بجلب دوره (Role) لتوجيهه بشكل صحيح
+                try {
+                    const userDocRef = doc(db, "users", user.uid);
+                    const userDoc = await getDoc(userDocRef);
+
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        
+                        // كتابة اسم المستخدم داخل صندوق الترحيب
+                        welcomeMessage.innerText = `👋 مرحباً بكِ مجدداً: ${userData.name || 'مستخدم رفيق'}`;
+                        
+                        // فحص الدور لتحديد وجهة زر الانتقال
+                        if (userData.role === "mentor") {
+                            goToDashboardBtn.href = "mentor.html";
+                        } else {
+                            goToDashboardBtn.href = "parent.html";
+                        }
+
+                        // إظهار واجهة المسجل وإخفاء واجهة الزائر
+                        userView.style.display = "block";
+                        guestView.style.display = "none";
+                    } else {
+                        // في حال لم يتم العثور على المستند في Firestore
+                        showGuestView();
+                    }
+                } catch (error) {
+                    console.error("خطأ أثناء جلب صلاحيات الحساب الموثق:", error);
+                    showGuestView();
+                }
+            } else {
+                // لا يوجد أي جلسة نشطة (زائر جديد للتطبيق)
+                showGuestView();
+            }
+        });
+
+        function showGuestView() {
+            guestView.style.display = "flex"; // تفعيل أزرار الدخول العادية
+            userView.style.display = "none";
+        }
+
+        // تفعيل وظيفة زر تسجيل الخروج
+        mainLogoutBtn.addEventListener('click', () => {
+            if (confirm("هل أنتِ متأكدة من رغبتكِ في تسجيل الخروج من تطبيق رفيق؟")) {
+                signOut(auth).then(() => {
+                    // إعادة تحميل الصفحة لتحديث المراقب تلقائياً
+                    window.location.reload();
+                }).catch((error) => {
+                    alert("تعذر تسجيل الخروج: " + error.message);
+                });
+            }
+        });
+    </script>
 </body>
 </html>
