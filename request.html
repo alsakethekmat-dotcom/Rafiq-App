@@ -33,12 +33,12 @@
 <body>
     <header>
         <a href="index.html" class="logo" style="text-decoration: none;">
-    <img src="images/rafeeq_logo.png" alt="شعار تطبيق رفيق">
-    <div>
-        <h2>رفيق</h2>
-        <p>طلب جلسة</p>
-    </div>
-</a>
+            <img src="images/rafeeq_logo.png" alt="شعار تطبيق رفيق">
+            <div>
+                <h2>رفيق</h2>
+                <p>طلب جلسة</p>
+            </div>
+        </a>
         <a href="parent.html" class="btn" style="background:#6c757d; padding: 10px 20px; font-size: 14px;">عودة</a>
     </header>
 
@@ -89,8 +89,8 @@
                 <div class="input-group">
                     <label>اسم مقدمة الخدمة (المرشدة)</label>
                     <select id="mentorSelect" required>
-    <option value="" disabled selected>جاري تحميل المرشدات...</option>
-</select>
+                        <option value="" disabled selected>جاري تحميل المرشدات...</option>
+                    </select>
                 </div>
 
                 <div class="loader" id="loadingSpinner"></div>
@@ -102,42 +102,46 @@
     </div>
 
     <script type="module">
+        // استيراد فايربيس مدمج وبدون تكرار لمنع توقف الأكواد
         import { db, auth } from './js/firebase.js';
-        import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-        import { db } from './js/firebase.js'; // تأكدي من مسار ملف الفايربيس
-import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+        import { collection, query, where, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
-async function loadMentorsIntoDropdown() {
-    const mentorSelect = document.getElementById('mentorSelect');
-    
-    try {
-        // استعلام لجلب المستخدمين الذين لديهم صلاحية مرشدة
-        const q = query(collection(db, "users"), where("role", "==", "mentor"));
-        const querySnapshot = await getDocs(q);
-        
-        mentorSelect.innerHTML = '<option value="" disabled selected>اختر المرشدة</option>';
-        
-        if (querySnapshot.empty) {
-            mentorSelect.innerHTML = '<option value="" disabled>لا توجد مرشدات متاحات حالياً</option>';
-            return;
+        async function loadMentorsIntoDropdown() {
+            const mentorSelect = document.getElementById('mentorSelect');
+            const spinner = document.getElementById("loadingSpinner");
+            
+            try {
+                // استعلام لجلب المستخدمين الذين لديهم صلاحية مرشدة
+                const q = query(collection(db, "users"), where("role", "==", "mentor"));
+                const querySnapshot = await getDocs(q);
+                
+                // إخفاء مؤشر التحميل عند انتهاء جلب البيانات
+                if (spinner) spinner.style.display = "none";
+                
+                mentorSelect.innerHTML = '<option value="" disabled selected>اختر المرشدة</option>';
+                
+                if (querySnapshot.empty) {
+                    mentorSelect.innerHTML = '<option value="" disabled>لا توجد مرشدات متاحات حالياً</option>';
+                    return;
+                }
+
+                // إضافة كل مرشدة موجودة في قاعدة البيانات إلى القائمة
+                querySnapshot.forEach((doc) => {
+                    const mentorData = doc.data();
+                    const option = document.createElement('option');
+                    option.value = mentorData.name; // الاسم الذي سيتم تخزينه في الطلب
+                    option.textContent = mentorData.name;
+                    mentorSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error("خطأ في جلب المرشدات:", error);
+                if (spinner) spinner.style.display = "none";
+                mentorSelect.innerHTML = '<option value="" disabled>تعذر تحميل المرشدات</option>';
+            }
         }
 
-        // إضافة كل مرشدة موجودة في قاعدة البيانات إلى القائمة
-        querySnapshot.forEach((doc) => {
-            const mentorData = doc.data();
-            const option = document.createElement('option');
-            option.value = mentorData.name; // الاسم الذي سيتم تخزينه في الطلب
-            option.textContent = mentorData.name;
-            mentorSelect.appendChild(option);
-        });
-    } catch (error) {
-        console.error("خطأ في جلب المرشدات:", error);
-        mentorSelect.innerHTML = '<option value="" disabled>تعذر تحميل المرشدات</option>';
-    }
-}
-
-// استدعاء الدالة عند تحميل الصفحة
-window.addEventListener('DOMContentLoaded', loadMentorsIntoDropdown);
+        // استدعاء الدالة عند تحميل الصفحة
+        window.addEventListener('DOMContentLoaded', loadMentorsIntoDropdown);
 
         // برمجة الأزرار الـ 3 الأنيقة لنوع الخدمة
         const serviceBtns = document.querySelectorAll('.service-btn');
@@ -163,12 +167,18 @@ window.addEventListener('DOMContentLoaded', loadMentorsIntoDropdown);
                 return;
             }
 
+            const mentorSelect = document.getElementById('mentorSelect');
+            if(!mentorSelect.value) {
+                alert("الرجاء اختيار مرشدة من القائمة");
+                return;
+            }
+
             const message = document.getElementById("message");
             const spinner = document.getElementById("loadingSpinner");
             const submitBtn = document.querySelector("button[type='submit']");
 
             message.innerHTML = "";
-            spinner.style.display = "block";
+            if (spinner) spinner.style.display = "block";
             submitBtn.disabled = true;
 
             try {
@@ -176,14 +186,15 @@ window.addEventListener('DOMContentLoaded', loadMentorsIntoDropdown);
                 const user = auth.currentUser;
                 const parentId = user ? user.uid : "ضيف"; 
 
+                // رفع البيانات لجدول الطلبات (requests)
                 await addDoc(collection(db, "requests"), {
                     parentId: parentId,
                     studentName: document.getElementById('studentName').value,
                     grade: document.getElementById('grade').value,
                     waitTime: document.getElementById('waitTime').value,
                     serviceType: serviceInput.value,
-                    mentorName: document.getElementById('mentorName').value,
-                    status: "قيد الانتظار", // سيتم تغييرها للموافقة أو الرفض من قبل المرشدة
+                    mentorName: mentorSelect.value, // تم تعديلها هنا لتقرأ القيمة المحددة من الـ select مباشرة
+                    status: "قيد الانتظار", 
                     createdAt: serverTimestamp()
                 });
 
@@ -197,7 +208,7 @@ window.addEventListener('DOMContentLoaded', loadMentorsIntoDropdown);
             } catch (error) {
                 message.style.color = "red";
                 message.innerHTML = "حدث خطأ أثناء إرسال الطلب: " + error.message;
-                spinner.style.display = "none";
+                if (spinner) spinner.style.display = "none";
                 submitBtn.disabled = false;
             }
         });
