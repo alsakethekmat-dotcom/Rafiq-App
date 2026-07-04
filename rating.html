@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -47,7 +47,7 @@
                 <p>تقييم التجربة</p>
             </div>
         </a>
-        <a href="parent.html" class="btn" style="background:#6c757d; padding: 10px 20px; font-size: 14px; text-decoration:none; border-radius:8px;">إلغاء</a>
+        <a href="parent.html" class="btn" style="background:#6c757d; padding: 10px 20px; font-size: 14px; text-decoration:none; border-radius:8px; color: white;">إلغاء</a>
     </header>
 
     <div class="hero">
@@ -81,12 +81,12 @@
 
     <script type="module">
         import { db, auth } from './js/firebase.js';
-        // 💡 تم ربط الشاشة هنا بالمجموعة الصحيحة reviews والحقول المطلوبة
-        import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+        import { collection, addDoc, doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
-        // جلب اسم المرشدة من الرابط المرسل من صفحة parent.html
+        // جلب المعاملات من الرابط (اسم المرشدة + معرف الطلب الفريد)
         const urlParams = new URLSearchParams(window.location.search);
         const mentorName = urlParams.get('mentor');
+        const requestId = urlParams.get('requestId'); // 🔑 تم إضافة جلب معرف الطلب للربط المباشر
         
         if (mentorName) {
             document.getElementById('mentorNameTitle').innerText = `تقييم المرشدة: ${mentorName}`;
@@ -137,14 +137,22 @@
                 const user = auth.currentUser;
                 const parentId = user ? user.uid : "مجهول"; 
 
-                // 🌟 تم تعديل الكود ليرفع البيانات بدقة إلى لوحة التحكم الخاصة بالمرشدة mentor.html
+                // 1️⃣ إضافة التقييم الجديد في مجموعة reviews ليظهر للمرشدة والمديرة
                 await addDoc(collection(db, "reviews"), {
-                    mentorName: mentorName || "غير محدد",
+                    mentorName: mentorName || "غير مححدد",
                     parentId: parentId,
-                    rating: parseInt(ratingInput.value),                // عدد النجوم من 1 لـ 5
-                    comment: document.getElementById('reviewText').value.trim(), // تم تغييرها لـ comment لتطابق شاشة المرشدة
-                    createdAt: serverTimestamp()                         // وقت الإرسال للترتيب التلقائي لحالة البث الحي
+                    rating: parseInt(ratingInput.value),
+                    comment: document.getElementById('reviewText').value.trim(),
+                    createdAt: serverTimestamp()
                 });
+
+                // 2️⃣ تحديث حالة الطلب الأصلي في الفايربيس ليتحول لـ "تم التقييم" فورا
+                if (requestId) {
+                    const requestRef = doc(db, "requests", requestId);
+                    await updateDoc(requestRef, {
+                        status: "تم التقييم" // ⚡ هذه الكلمة ستجعل كود شاشة parent.html يغير الزر تلقائياً
+                    });
+                }
 
                 message.style.color = "green";
                 message.innerHTML = "شكراً لتقييمك ودعمك لطالباتنا! جاري العودة للوحة التحكم...";
@@ -154,7 +162,7 @@
                 }, 2000);
 
             } catch (error) {
-                console.error("خطأ أثناء حفظ التقييم:", error);
+                console.error("خطأ أثناء حفظ التقييم أو تحديث الطلب:", error);
                 message.style.color = "red";
                 message.innerHTML = "حدث خطأ أثناء الإرسال: " + error.message;
                 spinner.style.display = "none";
