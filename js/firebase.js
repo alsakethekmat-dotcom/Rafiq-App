@@ -6,17 +6,17 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/12.15.0/firebas
 
 const firebaseConfig = {
 
-apiKey: "AIzaSyAZNTWIVHAPn-IIXtzd1_G_aqlsyuAJIzg",
+apiKey: "AIzaSyBlFfxCx7I90lEN6EKt0jpSdUDFAeaTbzE",
 
-authDomain: "rafiq-db1b9.firebaseapp.com",
+authDomain: "rafeeqapp-83caf.firebaseapp.com",
 
-projectId: "rafiq-db1b9",
+projectId: "rafeeqapp-83caf",
 
-storageBucket: "rafiq-db1b9.firebasestorage.app",
+storageBucket: "rafeeqapp-83caf.firebasestorage.app",
 
-messagingSenderId: "718212041226",
+messagingSenderId: "925088444548",
 
-appId: "1:718212041226:web:2e1d743ce140b5342aedf3"
+appId: "1:925088444548:web:bdbac993bbf910435052d1"
 
 };
 
