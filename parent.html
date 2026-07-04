@@ -62,12 +62,12 @@
 <body>
     <header>
         <a href="index.html" class="logo" style="text-decoration: none;">
-    <img src="images/rafeeq_logo.png" alt="شعار تطبيق رفيق">
-    <div>
-        <h2>رفيق</h2>
-        <p>اولياء الأمور</p>
-    </div>
-</a>
+            <img src="images/rafeeq_logo.png" alt="شعار تطبيق رفيق">
+            <div>
+                <h2>رفيق</h2>
+                <p id="parentWelcome">اولياء الأمور</p> 
+            </div>
+        </a>
         <button id="logoutBtn" class="btn" style="background:#dc3545; padding: 10px 20px; font-size: 14px;">تسجيل خروج</button>
     </header>
 
@@ -82,8 +82,7 @@
             <div style="background: white; border-radius: 20px; padding: 30px; box-shadow: 0 5px 20px rgba(0,0,0,0.05);">
                 <h3 class="section-title">طلباتي السابقة والحالية</h3>
                 <div class="loader" id="loadingSpinner" style="display: block;"></div>
-                <div id="myRequestsContainer">
-                    </div>
+                <div id="myRequestsContainer"></div>
             </div>
 
         </div>
@@ -99,13 +98,22 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // جلب اسم ولي الأمر
-                const userDoc = await getDoc(doc(db, "users", user.uid));
-                if (userDoc.exists() && userDoc.data().role === "parent") {
-                    document.getElementById('parentWelcome').innerText = `مرحباً ${userDoc.data().name}`;
-                    listenToMyRequests(user.uid);
-                } else {
-                    window.location.href = "login.html?role=parent";
+                try {
+                    // جلب اسم ولي الأمر من قاعدة البيانات
+                    const userDoc = await getDoc(doc(db, "users", user.uid));
+                    if (userDoc.exists() && userDoc.data().role === "parent") {
+                        // كود آمن للتحقق من وجود الحقل قبل تعديله
+                        const welcomeElem = document.getElementById('parentWelcome');
+                        if (welcomeElem) {
+                            welcomeElem.innerText = `مرحباً ${userDoc.data().name}`;
+                        }
+                        listenToMyRequests(user.uid);
+                    } else {
+                        window.location.href = "login.html?role=parent";
+                    }
+                } catch (err) {
+                    console.error("خطأ في جلب بيانات المستخدم:", err);
+                    if (spinner) spinner.style.display = "none";
                 }
             } else {
                 window.location.href = "login.html?role=parent";
@@ -113,10 +121,16 @@
         });
 
         function listenToMyRequests(parentId) {
-            const q = query(collection(db, "requests"), where("parentId", "==", parentId), orderBy("createdAt", "desc"));
+            // إنشاء الاستعلام
+            const q = query(
+                collection(db, "requests"), 
+                where("parentId", "==", parentId), 
+                orderBy("createdAt", "desc")
+            );
             
+            // الاستماع الحي لقاعدة البيانات مع إضافة معالج الأخطاء (Error Callback)
             onSnapshot(q, (snapshot) => {
-                spinner.style.display = "none";
+                if (spinner) spinner.style.display = "none"; // إخفاء الدائرة فوراً عند وصول البيانات
                 container.innerHTML = "";
 
                 if (snapshot.empty) {
@@ -152,6 +166,14 @@
                         </div>
                     `;
                 });
+            }, (error) => {
+                // 💡 حل مشكلة الفهرسة (Index): إذا اعترض فايربيس على الترتيب، سيتم إخفاء الدائرة وعرض تنبيه
+                console.error("خطأ فايربيس في جلب الطلبات:", error);
+                if (spinner) spinner.style.display = "none";
+                container.innerHTML = `
+                    <p style="text-align: center; color: #dc3545;">
+                        حدث خطأ أثناء تحميل الطلبات. إذا كنت تشغل التطبيق للمرة الأولى، يرجى الضغط على الرابط في الـ Console لإنشاء الفهرس المركّب (Composite Index).
+                    </p>`;
             });
         }
 
