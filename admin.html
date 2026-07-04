@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -77,13 +77,13 @@
 <body>
     <header>
         <a href="index.html" class="logo" style="text-decoration: none;">
-    <img src="images/rafeeq_logo.png" alt="شعار رفيق">
-    <h2>لوحة الإدارة (المشرفة)</h2>
-</a>
-        <button id="logoutBtn" class="btn" style="background:#dc3545; padding: 10px 20px; font-size: 14px;">تسجيل خروج</button>
+            <img src="images/rafeeq_logo.png" alt="شعار رفيق">
+            <h2>لوحة الإدارة (المشرفة)</h2>
+        </a>
+        <button id="logoutBtn" class="btn" style="background:#dc3545; padding: 10px 20px; font-size: 14px; border: none; cursor: pointer; color: white; font-weight: bold; border-radius: 8px;">تسجيل خروج</button>
     </header>
 
-    <div class="hero" style="align-items: flex-start;">
+    <div class="hero" id="mainContent" style="align-items: flex-start; display: none; flex-direction: column;">
         <div class="admin-container">
             
             <div class="stats-grid">
@@ -115,15 +115,16 @@
                             <th>الحالة</th>
                         </tr>
                     </thead>
-                    <tbody id="requestsBody">
-                        </tbody>
+                    <tbody id="requestsBody"></tbody>
                 </table>
             </div>
 
         </div>
     </div>
 
-    <footer>
+    <div id="securePageLoader" class="loader" style="display: block; margin: 100px auto;"></div>
+
+    <footer id="adminFooter" style="display: none;">
         <h3>تطبيق رفيق</h3>
         <p>إدارة النظام - مدرسة حكمت الساكت الأساسية</p>
     </footer>
@@ -136,28 +137,49 @@
         const spinner = document.getElementById('loadingSpinner');
         const requestsTable = document.getElementById('requestsTable');
         const requestsBody = document.getElementById('requestsBody');
+        const mainContent = document.getElementById('mainContent');
+        const securePageLoader = document.getElementById('securePageLoader');
+        const adminFooter = document.getElementById('adminFooter');
 
+        // 🛡️ فحص الأمان الصارم وحماية لوحة المديرة / المشرفة
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // التحقق من صلاحيات الإدارة (يجب أن يكون الـ role = admin في قاعدة البيانات)
-                const userDoc = await getDoc(doc(db, "users", user.uid));
-                if (userDoc.exists() && userDoc.data().role === "admin") {
-                    loadMentorsCount();
-                    listenToAllRequests();
-                } else {
-                    alert("عذراً، لا تملك صلاحيات الدخول لهذه الصفحة.");
+                try {
+                    // التحقق من صلاحيات الإدارة (يجب أن يكون الـ role = admin في قاعدة البيانات)
+                    const userDoc = await getDoc(doc(db, "users", user.uid));
+                    if (userDoc.exists() && userDoc.data().role === "admin") {
+                        
+                        // إظهار اللوحة والفوتر بأمان بعد ثبوت الصلاحية
+                        securePageLoader.style.display = "none";
+                        mainContent.style.display = "flex";
+                        adminFooter.style.display = "block";
+
+                        // تحميل وتفعيل قنوات بث البيانات
+                        loadMentorsCount();
+                        listenToAllRequests();
+                    } else {
+                        alert("عذراً، لا تملك صلاحيات الدخول لهذه الصفحة.");
+                        window.location.href = "index.html";
+                    }
+                } catch (error) {
+                    console.error("خطأ فحص أمان المشرفة الرئيسي:", error);
                     window.location.href = "index.html";
                 }
             } else {
+                // مجهول الهوية يحاول التسلل لصفحة الإدارة المباشرة
                 window.location.href = "login.html";
             }
         });
 
         // جلب عدد المرشدات المسجلات
         async function loadMentorsCount() {
-            const q = query(collection(db, "users"), where("role", "==", "mentor"));
-            const snapshot = await getDocs(q);
-            document.getElementById('totalMentors').innerText = snapshot.size;
+            try {
+                const q = query(collection(db, "users"), where("role", "==", "mentor"));
+                const snapshot = await getDocs(q);
+                document.getElementById('totalMentors').innerText = snapshot.size;
+            } catch (error) {
+                console.error("خطأ أثناء جلب تعداد المرشدات المعتمدات:", error);
+            }
         }
 
         // الاستماع اللحظي لجميع الطلبات في المدرسة
@@ -165,7 +187,7 @@
             const q = query(collection(db, "requests"), orderBy("createdAt", "desc"));
             
             onSnapshot(q, (snapshot) => {
-                spinner.style.display = "none";
+                if (spinner) spinner.style.display = "none";
                 requestsTable.style.display = "table";
                 requestsBody.innerHTML = "";
                 
@@ -195,11 +217,18 @@
                 });
 
                 document.getElementById('activeRequests').innerText = activeCount;
+            }, (error) => {
+                console.error("خطأ المراقبة الحية للإدارة:", error);
+                if (spinner) spinner.style.display = "none";
+                document.getElementById('requestsBody').innerHTML = `<tr><td colspan="6" style="text-align: center; color: #dc3545;">فشل تحديث البيانات الفورية لجدول الإدارة.</td></tr>`;
             });
         }
 
+        // تحسين آلية زر خروج الإدارة
         document.getElementById('logoutBtn').addEventListener('click', () => {
-            signOut(auth).then(() => window.location.href = "index.html");
+            if (confirm("هل أنت متأكد من رغبتك في تسجيل الخروج وإغلاق لوحة التحكم الإدارية؟")) {
+                signOut(auth).then(() => window.location.href = "index.html");
+            }
         });
     </script>
 </body>
