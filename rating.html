@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="css/style.css">
     <style>
         .rating-container {
-            direction: ltr; /* لعكس اتجاه النجوم برمجياً */
+            direction: ltr; /* لعكس اتجاه النجوم برمجياً لتسهيل التحديد الافتراضي */
             display: flex;
             justify-content: center;
             gap: 10px;
@@ -33,6 +33,7 @@
             outline: none;
             resize: none;
             font-family: inherit;
+            box-sizing: border-box;
         }
         textarea:focus { border-color: #18b38d; }
     </style>
@@ -40,19 +41,19 @@
 <body>
     <header>
         <a href="index.html" class="logo" style="text-decoration: none;">
-    <img src="images/rafeeq_logo.png" alt="شعار تطبيق رفيق">
-    <div>
-        <h2>رفيق</h2>
-        <p>تقييم التجربة</p>
-    </div>
-</a>
-        <a href="parent.html" class="btn" style="background:#6c757d; padding: 10px 20px; font-size: 14px;">إلغاء</a>
+            <img src="images/rafeeq_logo.png" alt="شعار تطبيق رفيق">
+            <div>
+                <h2>رفيق</h2>
+                <p>تقييم التجربة</p>
+            </div>
+        </a>
+        <a href="parent.html" class="btn" style="background:#6c757d; padding: 10px 20px; font-size: 14px; text-decoration:none; border-radius:8px;">إلغاء</a>
     </header>
 
     <div class="hero">
-        <div class="hero-card">
-            <h1 id="mentorNameTitle" style="color:#16376b;">تقييم المرشدة</h1>
-            <p>رأيك يهمنا ويساعد طالباتنا المرشدات على التطور وتقديم خدمة أفضل.</p>
+        <div class="hero-card" style="background: white; padding: 30px; border-radius: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); max-width: 500px; width: 100%; text-align: center;">
+            <h1 id="mentorNameTitle" style="color:#16376b; font-size: 24px; margin-bottom: 10px;">تقييم المرشدة</h1>
+            <p style="color: #666; margin-bottom: 25px;">رأيك يهمنا ويساعد طالباتنا المرشدات على التطور وتقديم بيئة مدرسية تفاعلية أفضل.</p>
             
             <form id="ratingForm">
                 <div class="rating-container" id="starsContainer">
@@ -65,24 +66,25 @@
                 
                 <input type="hidden" id="ratingValue" required>
 
-                <div class="input-group" style="text-align: right;">
-                    <label>اكتب رأيك أو كلمة شكر (اختياري)</label>
+                <div class="input-group" style="text-align: right; margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #333;">اكتب رأيك أو كلمة شكر (اختياري)</label>
                     <textarea id="reviewText" placeholder="المرشدة كانت ممتازة ومتعاونة جداً..."></textarea>
                 </div>
 
-                <div class="loader" id="loadingSpinner"></div>
-                <p class="message" id="message"></p>
+                <div class="loader" id="loadingSpinner" style="display: none; margin: 15px auto;"></div>
+                <p class="message" id="message" style="font-weight: bold; margin-bottom: 15px;"></p>
 
-                <button type="submit" class="btn blue full-btn">إرسال التقييم</button>
+                <button type="submit" class="btn blue full-btn" style="width: 100%; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer;">إرسال التقييم</button>
             </form>
         </div>
     </div>
 
     <script type="module">
         import { db, auth } from './js/firebase.js';
+        // 💡 تم ربط الشاشة هنا بالمجموعة الصحيحة reviews والحقول المطلوبة
         import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
-        // جلب اسم المرشدة من الرابط
+        // جلب اسم المرشدة من الرابط المرسل من صفحة parent.html
         const urlParams = new URLSearchParams(window.location.search);
         const mentorName = urlParams.get('mentor');
         
@@ -92,7 +94,7 @@
             document.getElementById('mentorNameTitle').innerText = `تقييم المرشدة`;
         }
 
-        // برمجة تفاعل النجوم
+        // برمجة تفاعل النجوم وتحويلها لقيم رقمية
         const stars = document.querySelectorAll('.star');
         const ratingInput = document.getElementById('ratingValue');
 
@@ -101,10 +103,10 @@
                 const value = this.getAttribute('data-value');
                 ratingInput.value = value;
                 
-                // إزالة التفعيل عن الجميع
+                // إعادة تهيئة جميع النجوم وإزالة اللون الذهبي
                 stars.forEach(s => s.classList.remove('active'));
                 
-                // تفعيل النجوم المختارة وما دونها (بسبب اتجاه ltr، الأقل هو الأكبر بالقيمة)
+                // تفعيل النجمة المحددة والنجمات السابقة لها بناءً على ترتيب الـ DOM واتجاه الحاوية لتبدو متصلة
                 this.classList.add('active');
                 let prev = this.nextElementSibling;
                 while(prev) {
@@ -114,12 +116,12 @@
             });
         });
 
-        // إرسال التقييم
+        // حدث إرسال التقييم وحفظه في Firestore
         document.getElementById('ratingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             if(!ratingInput.value) {
-                alert("الرجاء اختيار عدد النجوم لتقييم المرشدة.");
+                alert("الرجاء اختيار عدد النجوم لتقييم المرشدة قبل الإرسال.");
                 return;
             }
 
@@ -135,22 +137,24 @@
                 const user = auth.currentUser;
                 const parentId = user ? user.uid : "مجهول"; 
 
-                await addDoc(collection(db, "ratings"), {
+                // 🌟 تم تعديل الكود ليرفع البيانات بدقة إلى لوحة التحكم الخاصة بالمرشدة mentor.html
+                await addDoc(collection(db, "reviews"), {
                     mentorName: mentorName || "غير محدد",
                     parentId: parentId,
-                    rating: parseInt(ratingInput.value),
-                    reviewText: document.getElementById('reviewText').value,
-                    createdAt: serverTimestamp()
+                    rating: parseInt(ratingInput.value),                // عدد النجوم من 1 لـ 5
+                    comment: document.getElementById('reviewText').value.trim(), // تم تغييرها لـ comment لتطابق شاشة المرشدة
+                    createdAt: serverTimestamp()                         // وقت الإرسال للترتيب التلقائي لحالة البث الحي
                 });
 
                 message.style.color = "green";
-                message.innerHTML = "شكراً لتقييمك! جاري العودة للوحة التحكم...";
+                message.innerHTML = "شكراً لتقييمك ودعمك لطالباتنا! جاري العودة للوحة التحكم...";
                 
                 setTimeout(() => {
                     window.location.href = "parent.html";
                 }, 2000);
 
             } catch (error) {
+                console.error("خطأ أثناء حفظ التقييم:", error);
                 message.style.color = "red";
                 message.innerHTML = "حدث خطأ أثناء الإرسال: " + error.message;
                 spinner.style.display = "none";
