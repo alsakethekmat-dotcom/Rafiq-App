@@ -31,7 +31,10 @@ export async function registerUser(role) {
         });
         message.style.color = "green";
         message.innerHTML = "تم إنشاء الحساب بنجاح... جاري التحويل.";
-        setTimeout(() => window.location.href = (role === 'parent') ? "parent.html" : "mentor.html", 1500);
+        
+        // توجيه ذكي لجميع الأدوار عند التسجيل
+        const destination = role === 'admin' ? "admin.html" : (role === 'parent' ? "parent.html" : "mentor.html");
+        setTimeout(() => window.location.href = destination, 1500);
     } catch (error) {
         message.style.color = "red";
         message.innerHTML = "خطأ: " + error.message;
@@ -48,10 +51,20 @@ export async function loginUser(expectedRole) {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const snap = await getDoc(doc(db, "users", userCredential.user.uid));
         
-        if (snap.data().role !== expectedRole && snap.data().role !== "admin") {
-            throw new Error("هذا الحساب غير مسجل ضمن هذه الفئة.");
+        if (!snap.exists()) {
+            throw new Error("لا يوجد ملف شخصي لهذا المستخدم في النظام.");
         }
-        window.location.href = (snap.data().role === 'admin') ? "admin.html" : (expectedRole === 'parent' ? "parent.html" : "mentor.html");
+        
+        const userData = snap.data();
+        
+        // التحقق: يسمح بالدخول إذا كان الدور مطابقاً أو إذا كان المستخدم "مديرة" (admin)
+        if (userData.role !== expectedRole && userData.role !== "admin") {
+            throw new Error("عذراً، هذا الحساب غير مسجل ضمن هذه الفئة.");
+        }
+        
+        // التوجيه الذكي بناءً على الدور المخزن في قاعدة البيانات
+        const dest = (userData.role === 'admin') ? "admin.html" : (userData.role === 'parent' ? "parent.html" : "mentor.html");
+        window.location.href = dest;
     } catch (error) {
         message.style.color = "red";
         message.innerHTML = error.message;
@@ -67,15 +80,24 @@ export async function loginWithGoogle(role) {
         const userRef = doc(db, "users", user.uid);
         const snap = await getDoc(userRef);
         
+        let finalRole = role; // الدور الافتراضي من الرابط
+
         if (!snap.exists()) {
+            // إنشاء ملف جديد للمستخدم إذا لم يكن موجوداً
             await setDoc(userRef, {
                 name: user.displayName,
                 email: user.email,
                 role: role,
-                createdAt: new Date()
+                createdAt: serverTimestamp()
             });
+        } else {
+            // استخدام الدور المخزن فعلياً في قاعدة البيانات
+            finalRole = snap.data().role;
         }
-        window.location.href = (role === 'parent') ? "parent.html" : "mentor.html";
+        
+        // التوجيه الصحيح لكل دور
+        const dest = (finalRole === 'admin') ? "admin.html" : (finalRole === 'parent' ? "parent.html" : "mentor.html");
+        window.location.href = dest;
     } catch (error) {
         alert("خطأ في تسجيل الدخول بجوجل: " + error.message);
     }
