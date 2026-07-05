@@ -6,7 +6,7 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/12.15.0/firebas
 
 const firebaseConfig = {
 
-apiKey: "AIzaSyBlFfxCx7I90lEN6EKt0jpSdUDFAeaTbzE",
+apiKey: "AIzaSyDpVIinPrAxXYuIUNLfOWOMKVfKUmo-r6E",
 
 authDomain: "rafeeqapp-83caf.firebaseapp.com",
 
